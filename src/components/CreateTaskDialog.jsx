@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { format } from "date-fns";
+import { useCreateTaskMutation } from "../features/api-slice";
+import toast from "react-hot-toast";
 
 export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, projectId }) {
     const currentWorkspace = useSelector((state) => state.workspace?.currentWorkspace || null);
     const project = currentWorkspace?.projects.find((p) => p.id === projectId);
     const teamMembers = project?.members || [];
 
+    const [createTask] = useCreateTaskMutation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         title: "",
@@ -21,8 +24,38 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
 
+        try {
+            const body = {
+                projectId,
+                title: formData.title,
+                description: formData.description,
+                status: formData.status,
+                type: formData.type,
+                priority: formData.priority,
+                assigneeId: formData.assigneeId || null,
+                dueDate: formData.due_date ? new Date(formData.due_date).toISOString() : null,
+            };
 
+            await createTask(body).unwrap();
+
+            toast.success("Task created successfully");
+            setShowCreateTask(false);
+            setFormData({
+                title: "",
+                description: "",
+                type: "TASK",
+                status: "TODO",
+                priority: "MEDIUM",
+                assigneeId: "",
+                due_date: "",
+            });
+        } catch (error) {
+            toast.error(error?.data?.message || error.message || "Failed to create task");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return showCreateTask ? (

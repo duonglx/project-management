@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Mail, UserPlus } from "lucide-react";
 import { useSelector } from "react-redux";
+import { useAddWorkspaceMemberMutation, useGetUsersQuery } from "../features/api-slice";
+import toast from "react-hot-toast";
 
 const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const currentWorkspace = useSelector((state) => state.workspace?.currentWorkspace || null);
+    const { data: allUsers = [] } = useGetUsersQuery();
+    const [addWorkspaceMember] = useAddWorkspaceMemberMutation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -13,7 +17,30 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
 
+        try {
+            const selectedUser = allUsers.find(u => u.email === formData.email);
+            if (!selectedUser) {
+                toast.error("User not found");
+                return;
+            }
+
+            await addWorkspaceMember({
+                workspaceId: currentWorkspace.id,
+                userId: selectedUser.id,
+                role: formData.role,
+                message: "",
+            }).unwrap();
+
+            toast.success("Invitation sent successfully");
+            setIsDialogOpen(false);
+            setFormData({ email: "", role: "org:member" });
+        } catch (error) {
+            toast.error(error?.data?.message || error.message || "Failed to send invitation");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!isDialogOpen) return null;
@@ -38,11 +65,19 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
                     {/* Email */}
                     <div className="space-y-2">
                         <label htmlFor="email" className="text-sm font-medium text-zinc-900 dark:text-zinc-200">
-                            Email Address
+                            Select User
                         </label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 w-4 h-4" />
-                            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Enter email address" className="pl-10 mt-1 w-full rounded border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200 text-sm placeholder-zinc-400 dark:placeholder-zinc-500 py-2 focus:outline-none focus:border-blue-500" required />
+                            <select value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="pl-10 mt-1 w-full rounded border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200 text-sm py-2 focus:outline-none focus:border-blue-500" required>
+                                <option value="">Select a user</option>
+                                {allUsers
+                                    .filter(u => !currentWorkspace?.members?.some(m => m.user.email === u.email))
+                                    .map(user => (
+                                        <option key={user.id} value={user.email}>{user.email}</option>
+                                    ))
+                                }
+                            </select>
                         </div>
                     </div>
 

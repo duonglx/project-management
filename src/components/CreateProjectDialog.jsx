@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { XIcon } from "lucide-react";
 import { useSelector } from "react-redux";
+import { useCreateProjectMutation } from "../features/api-slice";
+import toast from "react-hot-toast";
 
 const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const { currentWorkspace } = useSelector((state) => state.workspace);
+    const [createProject] = useCreateProjectMutation();
 
     const [formData, setFormData] = useState({
         name: "",
@@ -22,7 +25,45 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        setIsSubmitting(true);
+
+        try {
+            // Find team lead user ID from workspace members
+            const teamLeadMember = currentWorkspace?.members?.find(m => m.user.email === formData.team_lead);
+            const teamLeadId = teamLeadMember?.user?.id || null;
+
+            const body = {
+                name: formData.name,
+                description: formData.description,
+                status: formData.status,
+                priority: formData.priority,
+                startDate: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+                endDate: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+                teamLead: teamLeadId,
+                workspaceId: currentWorkspace.id,
+                progress: 0,
+            };
+
+            await createProject(body).unwrap();
+
+            toast.success("Project created successfully");
+            setIsDialogOpen(false);
+            setFormData({
+                name: "",
+                description: "",
+                status: "PLANNING",
+                priority: "MEDIUM",
+                start_date: "",
+                end_date: "",
+                team_members: [],
+                team_lead: "",
+                progress: 0,
+            });
+        } catch (error) {
+            toast.error(error?.data?.message || error.message || "Failed to create project");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const removeTeamMember = (email) => {

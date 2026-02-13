@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { setCurrentWorkspace } from "../features/workspaceSlice";
+import { setCurrentWorkspaceId } from "../features/workspaceSlice";
 import { useNavigate } from "react-router-dom";
-import { dummyWorkspaces } from "../assets/assets";
+import { useGetWorkspacesQuery } from "../features/api-slice";
 
 function WorkspaceDropdown() {
 
-    const { workspaces } = useSelector((state) => state.workspace);
-    const currentWorkspace = useSelector((state) => state.workspace?.currentWorkspace || null);
+    const { currentUserId, currentWorkspace } = useSelector((state) => state.workspace);
+    const { data: workspaces = [] } = useGetWorkspacesQuery(currentUserId, { skip: !currentUserId });
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -16,7 +16,7 @@ function WorkspaceDropdown() {
     const navigate = useNavigate();
 
     const onSelectWorkspace = (organizationId) => {
-        dispatch(setCurrentWorkspace(organizationId))
+        dispatch(setCurrentWorkspaceId(organizationId))
         setIsOpen(false);
         navigate('/')
     }
@@ -36,7 +36,7 @@ function WorkspaceDropdown() {
         <div className="relative m-4" ref={dropdownRef}>
             <button onClick={() => setIsOpen(prev => !prev)} className="w-full flex items-center justify-between p-3 h-auto text-left rounded hover:bg-gray-100 dark:hover:bg-zinc-800" >
                 <div className="flex items-center gap-3">
-                    <img src={currentWorkspace?.image_url} alt={currentWorkspace?.name} className="w-8 h-8 rounded shadow" />
+                    <img src={currentWorkspace?.imageUrl} alt={currentWorkspace?.name} className="w-8 h-8 rounded shadow" />
                     <div className="min-w-0 flex-1">
                         <p className="font-semibold text-gray-800 dark:text-white text-sm truncate">
                             {currentWorkspace?.name || "Select Workspace"}
@@ -55,15 +55,15 @@ function WorkspaceDropdown() {
                         <p className="text-xs text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">
                             Workspaces
                         </p>
-                        {dummyWorkspaces.map((ws) => (
+                        {workspaces.map((ws) => (
                             <div key={ws.id} onClick={() => onSelectWorkspace(ws.id)} className="flex items-center gap-3 p-2 cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-zinc-800" >
-                                <img src={ws.image_url} alt={ws.name} className="w-6 h-6 rounded" />
+                                <img src={ws.imageUrl} alt={ws.name} className="w-6 h-6 rounded" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
                                         {ws.name}
                                     </p>
                                     <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">
-                                        {ws.membersCount || 0} members
+                                        {ws.members?.length || 0} members
                                     </p>
                                 </div>
                                 {currentWorkspace?.id === ws.id && (

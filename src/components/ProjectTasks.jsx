@@ -1,9 +1,8 @@
 import { format } from "date-fns";
 import toast from "react-hot-toast";
-import { useDispatch } from "react-redux";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { deleteTask, updateTask } from "../features/workspaceSlice";
+import { useUpdateTaskMutation, useDeleteTasksMutation } from "../features/api-slice";
 import { Bug, CalendarIcon, GitCommit, MessageSquare, Square, Trash, XIcon, Zap } from "lucide-react";
 
 const typeIcons = {
@@ -21,8 +20,9 @@ const priorityTexts = {
 };
 
 const ProjectTasks = ({ tasks }) => {
-    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const [updateTask] = useUpdateTaskMutation();
+    const [deleteTasks] = useDeleteTasksMutation();
     const [selectedTasks, setSelectedTasks] = useState([]);
 
     const [filters, setFilters] = useState({
@@ -56,20 +56,24 @@ const ProjectTasks = ({ tasks }) => {
 
     const handleStatusChange = async (taskId, newStatus) => {
         try {
-            toast.loading("Updating status...");
+            const task = tasks.find((t) => t.id === taskId);
+            if (!task) return;
 
-            //  Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await updateTask({
+                id: taskId,
+                projectId: task.projectId,
+                title: task.title,
+                description: task.description,
+                status: newStatus,
+                type: task.type,
+                priority: task.priority,
+                assigneeId: task.assignee?.id || null,
+                dueDate: task.dueDate,
+            }).unwrap();
 
-            let updatedTask = structuredClone(tasks.find((t) => t.id === taskId));
-            updatedTask.status = newStatus;
-            dispatch(updateTask(updatedTask));
-
-            toast.dismissAll();
             toast.success("Task status updated successfully");
         } catch (error) {
-            toast.dismissAll();
-            toast.error(error?.response?.data?.message || error.message);
+            toast.error(error?.data?.message || error.message || "Failed to update task");
         }
     };
 
@@ -78,18 +82,12 @@ const ProjectTasks = ({ tasks }) => {
             const confirm = window.confirm("Are you sure you want to delete the selected tasks?");
             if (!confirm) return;
 
-            toast.loading("Deleting tasks...");
+            await deleteTasks(selectedTasks).unwrap();
 
-            //  Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            dispatch(deleteTask(selectedTasks));
-
-            toast.dismissAll();
             toast.success("Tasks deleted successfully");
+            setSelectedTasks([]);
         } catch (error) {
-            toast.dismissAll();
-            toast.error(error?.response?.data?.message || error.message);
+            toast.error(error?.data?.message || error.message || "Failed to delete tasks");
         }
     };
 
@@ -198,14 +196,14 @@ const ProjectTasks = ({ tasks }) => {
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-2">
-                                                        <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
+                                                        <img src={task.assignee?.imageUrl} className="size-5 rounded-full" alt="avatar" />
                                                         {task.assignee?.name || "-"}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
                                                         <CalendarIcon className="size-4" />
-                                                        {format(new Date(task.due_date), "dd MMMM")}
+                                                        {format(new Date(task.dueDate), "dd MMMM")}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -257,13 +255,13 @@ const ProjectTasks = ({ tasks }) => {
                                         </div>
 
                                         <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                            <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
+                                            <img src={task.assignee?.imageUrl} className="size-5 rounded-full" alt="avatar" />
                                             {task.assignee?.name || "-"}
                                         </div>
 
                                         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                                             <CalendarIcon className="size-4" />
-                                            {format(new Date(task.due_date), "dd MMMM")}
+                                            {format(new Date(task.dueDate), "dd MMMM")}
                                         </div>
                                     </div>
                                 );

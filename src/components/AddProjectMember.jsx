@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Mail, UserPlus } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
+import { useAddProjectMemberMutation } from "../features/api-slice";
+import toast from "react-hot-toast";
 
 const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
 
@@ -14,12 +16,34 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
     const project = currentWorkspace?.projects.find((p) => p.id === id);
     const projectMembersEmails = project?.members.map((member) => member.user.email);
 
+    const [addProjectMember] = useAddProjectMemberMutation();
     const [email, setEmail] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        setIsAdding(true);
+
+        try {
+            const selectedMember = currentWorkspace?.members?.find(m => m.user.email === email);
+            if (!selectedMember) {
+                toast.error("Member not found");
+                return;
+            }
+
+            await addProjectMember({
+                projectId: id,
+                userId: selectedMember.user.id,
+            }).unwrap();
+
+            toast.success("Member added successfully");
+            setIsDialogOpen(false);
+            setEmail('');
+        } catch (error) {
+            toast.error(error?.data?.message || error.message || "Failed to add member");
+        } finally {
+            setIsAdding(false);
+        }
     };
 
     if (!isDialogOpen) return null;

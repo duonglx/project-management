@@ -6,20 +6,23 @@ import Projects from "./pages/Projects";
 import Team from "./pages/Team";
 import ProjectDetails from "./pages/ProjectDetails";
 import TaskDetails from "./pages/TaskDetails";
+import AppInitializer from "./components/AppInitializer";
 
 const App = () => {
     return (
         <>
             <Toaster />
-            <Routes>
-                <Route path="/" element={<Layout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="team" element={<Team />} />
-                    <Route path="projects" element={<Projects />} />
-                    <Route path="projectsDetail" element={<ProjectDetails />} />
-                    <Route path="taskDetails" element={<TaskDetails />} />
-                </Route>
-            </Routes>
+            <AppInitializer>
+                <Routes>
+                    <Route path="/" element={<Layout />}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="team" element={<Team />} />
+                        <Route path="projects" element={<Projects />} />
+                        <Route path="projectsDetail" element={<ProjectDetails />} />
+                        <Route path="taskDetails" element={<TaskDetails />} />
+                    </Route>
+                </Routes>
+            </AppInitializer>
         </>
     );
 };
