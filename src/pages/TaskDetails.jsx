@@ -2,30 +2,31 @@ import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { CalendarIcon, MessageCircle, PenIcon } from "lucide-react";
 import { useGetCommentsQuery, useCreateCommentMutation } from "../features/api-slice";
 
 const TaskDetails = () => {
-
-    const [searchParams] = useSearchParams();
-    const projectId = searchParams.get("projectId");
-    const taskId = searchParams.get("taskId");
+    const { workspaceId, projectId, taskId } = useParams();
 
     const [task, setTask] = useState(null);
     const [project, setProject] = useState(null);
     const [newComment, setNewComment] = useState("");
     const [loading, setLoading] = useState(true);
 
-    const { currentWorkspace, currentUserId } = useSelector((state) => state.workspace);
-    const { data: comments = [], refetch: refetchComments } = useGetCommentsQuery(taskId, { skip: !taskId });
+    const { currentWorkspace } = useSelector((state) => state.workspace);
+    const authUser = useSelector((state) => state.auth.user);
+    const { data: comments = [], refetch: refetchComments } = useGetCommentsQuery(
+        { workspaceId, projectId, taskId },
+        { skip: !workspaceId || !projectId || !taskId }
+    );
     const [createComment] = useCreateCommentMutation();
 
     const fetchTaskDetails = async () => {
         setLoading(true);
         if (!projectId || !taskId) return;
 
-        const proj = currentWorkspace.projects.find((p) => p.id === projectId);
+        const proj = currentWorkspace?.projects?.find((p) => p.id === projectId);
         if (!proj) return;
 
         const tsk = proj.tasks.find((t) => t.id === taskId);
@@ -41,9 +42,10 @@ const TaskDetails = () => {
 
         try {
             await createComment({
+                workspaceId,
+                projectId,
                 taskId,
                 content: newComment,
-                userId: currentUserId,
             }).unwrap();
 
             setNewComment("");
@@ -55,7 +57,7 @@ const TaskDetails = () => {
         }
     };
 
-    useEffect(() => { fetchTaskDetails(); }, [taskId]);
+    useEffect(() => { fetchTaskDetails(); }, [taskId, projectId, currentWorkspace]);
 
     if (loading) return <div className="text-gray-500 dark:text-zinc-400 px-4 py-6">Loading task details...</div>;
     if (!task) return <div className="text-red-500 px-4 py-6">Task not found.</div>;
@@ -73,10 +75,10 @@ const TaskDetails = () => {
                         {comments.length > 0 ? (
                             <div className="flex flex-col gap-4 mb-6 mr-2">
                                 {comments.map((comment) => (
-                                    <div key={comment.id} className={`sm:max-w-4/5 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-900 border border-gray-300 dark:border-zinc-700 p-3 rounded-md ${comment.user.id === currentUserId ? "ml-auto" : "mr-auto"}`} >
+                                    <div key={comment.id} className={`sm:max-w-4/5 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-900 border border-gray-300 dark:border-zinc-700 p-3 rounded-md ${comment.user?.id === authUser?.id ? "ml-auto" : "mr-auto"}`} >
                                         <div className="flex items-center gap-2 mb-1 text-sm text-gray-500 dark:text-zinc-400">
-                                            <img src={comment.user.imageUrl} alt="avatar" className="size-5 rounded-full" />
-                                            <span className="font-medium text-gray-900 dark:text-white">{comment.user.name}</span>
+                                            <img src={comment.user?.imageUrl} alt="avatar" className="size-5 rounded-full" />
+                                            <span className="font-medium text-gray-900 dark:text-white">{comment.user?.name}</span>
                                             <span className="text-xs text-gray-400 dark:text-zinc-600">
                                                 • {format(new Date(comment.createdAt), "dd MMM yyyy, HH:mm")}
                                             </span>
@@ -138,7 +140,7 @@ const TaskDetails = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             <CalendarIcon className="size-4 text-gray-500 dark:text-zinc-500" />
-                            Due : {format(new Date(task.dueDate), "dd MMM yyyy")}
+                            Due : {task.dueDate ? format(new Date(task.dueDate), "dd MMM yyyy") : "No due date"}
                         </div>
                     </div>
                 </div>
@@ -148,7 +150,7 @@ const TaskDetails = () => {
                     <div className="p-4 rounded-md bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-gray-300 dark:border-zinc-800 ">
                         <p className="text-xl font-medium mb-4">Project Details</p>
                         <h2 className="text-gray-900 dark:text-zinc-100 flex items-center gap-2"> <PenIcon className="size-4" /> {project.name}</h2>
-                        <p className="text-xs mt-3">Project Start Date: {format(new Date(project.startDate), "dd MMM yyyy")}</p>
+                        <p className="text-xs mt-3">Project Start Date: {project.startDate ? format(new Date(project.startDate), "dd MMM yyyy") : "Not set"}</p>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-zinc-400 mt-3">
                             <span>Status: {project.status}</span>
                             <span>Priority: {project.priority}</span>

@@ -12,7 +12,8 @@ This directory contains code standards and conventions for the Project Managemen
 - **[React Patterns](./react-patterns.md)** - Component structure, hooks usage, performance optimization
 - **[Redux Conventions](./redux-conventions.md)** - State management patterns and best practices
 - **[Styling Guide](./styling-guide.md)** - Tailwind CSS conventions and patterns
-- **[Code Quality](./code-quality.md)** - ESLint, testing, git standards, security
+- **[Code Quality](./code-quality.md)** - ESLint, testing, git standards
+- **[Security Standards](./security-standards.md)** - JWT authentication, RBAC, secure patterns, frontend/backend
 
 ## Quick Reference
 

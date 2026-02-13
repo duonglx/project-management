@@ -1,31 +1,27 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useGetUsersQuery, useGetWorkspacesQuery, useGetWorkspaceQuery } from '../features/api-slice';
-import { setCurrentWorkspaceId, setCurrentWorkspace, setCurrentUserId } from '../features/workspaceSlice';
+import { useParams } from 'react-router-dom';
+import { useGetWorkspaceQuery } from '../features/api-slice';
+import { setCurrentWorkspaceId, setCurrentWorkspace } from '../features/workspaceSlice';
+import { setActiveWorkspaceId } from '../features/auth-slice';
+import { Loader2Icon } from 'lucide-react';
 
 export default function AppInitializer({ children }) {
     const dispatch = useDispatch();
-    const { currentWorkspaceId, currentUserId } = useSelector((state) => state.workspace);
+    const { workspaceId } = useParams();
+    const { currentWorkspaceId } = useSelector((state) => state.workspace);
 
-    const { data: users } = useGetUsersQuery();
-
-    // Auto-select first user
+    // Sync URL workspaceId to redux stores
     useEffect(() => {
-        if (users?.length > 0 && !currentUserId) {
-            dispatch(setCurrentUserId(users[0].id));
+        if (workspaceId && workspaceId !== currentWorkspaceId) {
+            dispatch(setCurrentWorkspaceId(workspaceId));
+            dispatch(setActiveWorkspaceId(workspaceId));
         }
-    }, [users, currentUserId, dispatch]);
+    }, [workspaceId, currentWorkspaceId, dispatch]);
 
-    const { data: workspaces } = useGetWorkspacesQuery(currentUserId, { skip: !currentUserId });
-
-    // Auto-select workspace
-    useEffect(() => {
-        if (workspaces?.length > 0 && !currentWorkspaceId) {
-            dispatch(setCurrentWorkspaceId(workspaces[0].id));
-        }
-    }, [workspaces, currentWorkspaceId, dispatch]);
-
-    const { data: workspaceData } = useGetWorkspaceQuery(currentWorkspaceId, { skip: !currentWorkspaceId });
+    const { data: workspaceData, isLoading } = useGetWorkspaceQuery(workspaceId, {
+        skip: !workspaceId,
+    });
 
     // Sync workspace data to redux
     useEffect(() => {
@@ -34,8 +30,12 @@ export default function AppInitializer({ children }) {
         }
     }, [workspaceData, dispatch]);
 
-    if (!currentUserId || !workspaces || !workspaceData) {
-        return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
+    if (isLoading || (workspaceId && !workspaceData)) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-950">
+                <Loader2Icon className="size-7 text-blue-500 animate-spin" />
+            </div>
+        );
     }
 
     return children;

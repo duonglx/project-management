@@ -28,6 +28,7 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
 
         try {
             const body = {
+                workspaceId: currentWorkspace.id,
                 projectId,
                 title: formData.title,
                 description: formData.description,

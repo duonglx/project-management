@@ -1,5 +1,6 @@
 package com.shbvn.jms.model;
 
+import com.shbvn.jms.model.enums.SystemRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,17 @@ public class User {
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
+
+    @Column(name = "username", nullable = false, unique = true, length = 50)
+    private String username;
+
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "system_role", nullable = false, length = 20)
+    @Builder.Default
+    private SystemRole systemRole = SystemRole.USER;
 
     @Column(name = "image")
     @Builder.Default

@@ -19,7 +19,7 @@ const priorityTexts = {
     HIGH: { background: "bg-emerald-100 dark:bg-emerald-950", prioritycolor: "text-emerald-600 dark:text-emerald-400" },
 };
 
-const ProjectTasks = ({ tasks }) => {
+const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
     const navigate = useNavigate();
     const [updateTask] = useUpdateTaskMutation();
     const [deleteTasks] = useDeleteTasksMutation();
@@ -60,8 +60,9 @@ const ProjectTasks = ({ tasks }) => {
             if (!task) return;
 
             await updateTask({
+                workspaceId,
+                projectId,
                 id: taskId,
-                projectId: task.projectId,
                 title: task.title,
                 description: task.description,
                 status: newStatus,
@@ -82,7 +83,7 @@ const ProjectTasks = ({ tasks }) => {
             const confirm = window.confirm("Are you sure you want to delete the selected tasks?");
             if (!confirm) return;
 
-            await deleteTasks(selectedTasks).unwrap();
+            await deleteTasks({ workspaceId, projectId, ids: selectedTasks }).unwrap();
 
             toast.success("Tasks deleted successfully");
             setSelectedTasks([]);
@@ -171,7 +172,7 @@ const ProjectTasks = ({ tasks }) => {
                                         const { background, prioritycolor } = priorityTexts[task.priority] || {};
 
                                         return (
-                                            <tr key={task.id} onClick={() => navigate(`/taskDetails?projectId=${task.projectId}&taskId=${task.id}`)} className=" border-t border-zinc-300 dark:border-zinc-800 group hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer" >
+                                            <tr key={task.id} onClick={() => navigate(`/w/${workspaceId}/projects/${projectId}/tasks/${task.id}`)} className=" border-t border-zinc-300 dark:border-zinc-800 group hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all cursor-pointer" >
                                                 <td onClick={e => e.stopPropagation()} className="pl-2 pr-1">
                                                     <input type="checkbox" className="size-3 accent-zinc-600 dark:accent-zinc-500" onChange={() => selectedTasks.includes(task.id) ? setSelectedTasks(selectedTasks.filter((i) => i !== task.id)) : setSelectedTasks((prev) => [...prev, task.id])} checked={selectedTasks.includes(task.id)} />
                                                 </td>

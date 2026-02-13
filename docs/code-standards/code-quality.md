@@ -206,38 +206,26 @@ refactor(components): extract common badge component
 
 ## Security Best Practices
 
-### Current (Frontend-Only)
+See [Security Standards](./security-standards.md) for detailed authentication, authorization, and data protection patterns.
 
-**1. Input Sanitization:**
-- Validate user input in forms
-- Prevent XSS via React's automatic escaping
-- Avoid dangerouslySetInnerHTML
+### Quick Reference
 
-**2. Dependencies:**
+**Frontend:**
+- JWT stored in httpOnly cookies (automatic by API client)
+- usePermission hook for checking access
+- ProtectedRoute for authentication
+- PermissionGate component for granular access
+
+**Backend:**
+- Spring Security with JWT filter
+- @PreAuthorize for method-level security
+- PermissionService for RBAC checks
+- Password hashing via BCrypt (12 rounds)
+
+**Dependencies:**
 - Regular `npm audit` checks
 - Update dependencies promptly
 - Review dependency licenses
-
-### Future (Backend Integration)
-
-**1. Authentication:**
-- JWT tokens stored securely (httpOnly cookies)
-- Token expiration and refresh
-- Secure password hashing (bcrypt)
-
-**2. Authorization:**
-- Role-based access control (RBAC)
-- Workspace-level data isolation
-- API endpoint protection
-
-**3. Data Validation:**
-- Server-side validation
-- Input sanitization
-- SQL injection prevention (use Prisma parameterized queries)
-
-**4. HTTPS:**
-- Enforce HTTPS in production
-- Secure headers (CORS, CSP)
 
 ## Accessibility Standards
 

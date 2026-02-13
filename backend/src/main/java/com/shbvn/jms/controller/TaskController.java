@@ -8,37 +8,40 @@ import com.shbvn.jms.dto.response.TaskResponse;
 import com.shbvn.jms.model.Task;
 import com.shbvn.jms.service.TaskService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/tasks")
+@RequestMapping("/api/workspaces/{workspaceId}/projects/{projectId}/tasks")
+@RequiredArgsConstructor
 public class TaskController {
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
 
-    public TaskController(TaskService taskService, TaskMapper taskMapper) {
-        this.taskService = taskService;
-        this.taskMapper = taskMapper;
-    }
-
     @GetMapping
+    @PreAuthorize("@perm.isMember(#workspaceId)")
     public ResponseEntity<Page<TaskResponse>> getTasks(
-            @RequestParam String projectId,
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
             Pageable pageable) {
         Page<Task> tasks = taskService.getTasksByProjectId(projectId, pageable);
-        Page<TaskResponse> response = tasks.map(taskMapper::toResponse);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(tasks.map(taskMapper::toResponse));
     }
 
     @PostMapping
-    public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody CreateTaskRequest request) {
+    @PreAuthorize("@perm.checkProject(#workspaceId, 'task:create', #projectId)")
+    public ResponseEntity<TaskResponse> createTask(
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
+            @Valid @RequestBody CreateTaskRequest request) {
         Task task = Task.builder()
-                .projectId(request.getProjectId())
+                .projectId(projectId)
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .status(request.getStatus())
@@ -49,20 +52,25 @@ public class TaskController {
                 .build();
 
         Task created = taskService.createTask(task);
-        TaskResponse response = taskMapper.toResponse(created);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(taskMapper.toResponse(created));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<TaskResponse> getTaskById(@PathVariable String id) {
-        Task task = taskService.getTaskById(id);
-        TaskResponse response = taskMapper.toResponse(task);
-        return ResponseEntity.ok(response);
+    @GetMapping("/{taskId}")
+    @PreAuthorize("@perm.isMember(#workspaceId)")
+    public ResponseEntity<TaskResponse> getTaskById(
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
+            @PathVariable String taskId) {
+        Task task = taskService.getTaskById(taskId);
+        return ResponseEntity.ok(taskMapper.toResponse(task));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{taskId}")
+    @PreAuthorize("@perm.checkProject(#workspaceId, 'task:update', #projectId)")
     public ResponseEntity<TaskResponse> updateTask(
-            @PathVariable String id,
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
+            @PathVariable String taskId,
             @Valid @RequestBody UpdateTaskRequest request) {
         Task updates = Task.builder()
                 .title(request.getTitle())
@@ -74,19 +82,26 @@ public class TaskController {
                 .dueDate(request.getDueDate() != null ? request.getDueDate().toLocalDate() : null)
                 .build();
 
-        Task updated = taskService.updateTask(id, updates);
-        TaskResponse response = taskMapper.toResponse(updated);
-        return ResponseEntity.ok(response);
+        Task updated = taskService.updateTask(taskId, updates);
+        return ResponseEntity.ok(taskMapper.toResponse(updated));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable String id) {
-        taskService.deleteTask(id);
+    @DeleteMapping("/{taskId}")
+    @PreAuthorize("@perm.checkProject(#workspaceId, 'task:delete', #projectId)")
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
+            @PathVariable String taskId) {
+        taskService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/batch")
-    public ResponseEntity<Void> batchDeleteTasks(@Valid @RequestBody BatchDeleteRequest request) {
+    @PreAuthorize("@perm.checkProject(#workspaceId, 'task:delete', #projectId)")
+    public ResponseEntity<Void> batchDeleteTasks(
+            @PathVariable String workspaceId,
+            @PathVariable String projectId,
+            @Valid @RequestBody BatchDeleteRequest request) {
         taskService.deleteTasks(request.getIds());
         return ResponseEntity.noContent().build();
     }

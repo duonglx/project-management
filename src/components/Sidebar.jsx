@@ -1,16 +1,22 @@
 import { useEffect, useRef } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useParams } from 'react-router-dom'
 import MyTasksSidebar from './MyTasksSidebar'
 import ProjectSidebar from './ProjectsSidebar'
 import WorkspaceDropdown from './WorkspaceDropdown'
-import { FolderOpenIcon, LayoutDashboardIcon, SettingsIcon, UsersIcon } from 'lucide-react'
+import { FolderOpenIcon, LayoutDashboardIcon, SettingsIcon, UsersIcon, ShieldIcon, UserCogIcon } from 'lucide-react'
+import PermissionGate from './PermissionGate'
+import { useSelector } from 'react-redux'
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
+    const { workspaceId } = useParams();
+    const prefix = `/w/${workspaceId}`;
+    const authUser = useSelector((state) => state.auth.user);
+    const isSystemAdmin = authUser?.systemRole === 'ADMIN_WORKSPACE' || authUser?.systemRole === 'SUPER_ADMIN';
 
     const menuItems = [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboardIcon },
-        { name: 'Projects', href: '/projects', icon: FolderOpenIcon },
-        { name: 'Team', href: '/team', icon: UsersIcon },
+        { name: 'Dashboard', href: `${prefix}/dashboard`, icon: LayoutDashboardIcon },
+        { name: 'Projects', href: `${prefix}/projects`, icon: FolderOpenIcon },
+        { name: 'Team', href: `${prefix}/team`, icon: UsersIcon },
     ]
 
     const sidebarRef = useRef(null);
@@ -38,18 +44,23 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                                 <p className='text-sm truncate'>{item.name}</p>
                             </NavLink>
                         ))}
-                        <button className='flex w-full items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-all'>
-                            <SettingsIcon size={16} />
-                            <p className='text-sm truncate'>Settings</p>
-                        </button>
+                        <PermissionGate permission="workspace:manage_settings">
+                            <NavLink to={`${prefix}/settings/roles`} className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
+                                <ShieldIcon size={16} />
+                                <p className='text-sm truncate'>Roles & Permissions</p>
+                            </NavLink>
+                        </PermissionGate>
+                        {isSystemAdmin && (
+                            <NavLink to="/admin/users" className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
+                                <UserCogIcon size={16} />
+                                <p className='text-sm truncate'>Admin Users</p>
+                            </NavLink>
+                        )}
                     </div>
                     <MyTasksSidebar />
                     <ProjectSidebar />
                 </div>
-
-
             </div>
-
         </div>
     )
 }

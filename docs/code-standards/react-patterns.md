@@ -227,6 +227,251 @@ if (!data) return <EmptyState />;
 return <DataDisplay data={data} />;
 ```
 
+## Authentication & Authorization Patterns
+
+### Protected Routes with JWT
+
+**App.jsx - Route Setup:**
+```jsx
+import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import Layout from './pages/Layout';
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="w/:workspaceId/*" element={<WorkspaceLayout />} />
+          <Route path="team" element={<Team />} />
+        </Route>
+      </Route>
+    </Routes>
+  );
+}
+```
+
+**ProtectedRoute.jsx - Authentication Check:**
+```jsx
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Navigate, Outlet } from 'react-router-dom';
+import { fetchCurrentUser, selectIsAuthenticated, selectAuthStatus }
+  from '../features/auth-slice';
+import { Loader2Icon } from 'lucide-react';
+
+export default function ProtectedRoute() {
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const status = useSelector(selectAuthStatus);
+
+  useEffect(() => {
+    if (!isAuthenticated && status !== 'loading') {
+      dispatch(fetchCurrentUser());  // Verify JWT session
+    }
+  }, [isAuthenticated, status, dispatch]);
+
+  if (status === 'loading' || (status === 'idle' && !isAuthenticated)) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-950">
+        <Loader2Icon className="size-7 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && status === 'failed') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
+```
+
+### Permission Checking
+
+**usePermission Hook:**
+```javascript
+import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { selectPermissions } from '../features/auth-slice';
+
+/**
+ * Hook for checking user permissions in component logic
+ * Returns permission set and helper methods
+ */
+export function usePermission() {
+  const permissions = useSelector(selectPermissions);
+
+  return useMemo(() => ({
+    permissions,  // Array of permission strings
+    has: (perm) => permissions.includes(perm),
+    hasAny: (perms) => perms.some((p) => permissions.includes(p)),
+    hasAll: (perms) => perms.every((p) => permissions.includes(p)),
+  }), [permissions]);
+}
+```
+
+**Usage in Components:**
+```jsx
+function ProjectActions({ projectId }) {
+  const { has, hasAny } = usePermission();
+
+  return (
+    <div className="flex gap-2">
+      {has('project:edit') && (
+        <button onClick={() => editProject(projectId)}>Edit</button>
+      )}
+      {has('project:delete') && (
+        <button onClick={() => deleteProject(projectId)}>Delete</button>
+      )}
+      {hasAny(['workspace:admin', 'project:settings']) && (
+        <button onClick={() => openSettings()}>Settings</button>
+      )}
+    </div>
+  );
+}
+```
+
+**PermissionGate Component (future):**
+```jsx
+/**
+ * Conditional rendering based on user permissions
+ * Hides content if permission not granted
+ */
+export function PermissionGate({ permission, permissions, fallback, children }) {
+  const { has, hasAll } = usePermission();
+
+  // Check single permission
+  if (permission && !has(permission)) {
+    return fallback || null;
+  }
+
+  // Check multiple permissions (all required)
+  if (permissions && !hasAll(permissions)) {
+    return fallback || null;
+  }
+
+  return children;
+}
+
+// Usage:
+<PermissionGate permission="workspace:delete">
+  <DeleteWorkspaceButton />
+</PermissionGate>
+
+<PermissionGate permissions={['workspace:admin', 'audit:view']}>
+  <AuditDashboard />
+</PermissionGate>
+```
+
+### Auth State Management
+
+**auth-slice.js - Redux Auth State:**
+```javascript
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { loginApi, fetchMeApi, logoutApi } from '../services/auth-api';
+
+export const login = createAsyncThunk(
+  'auth/login',
+  async ({ username, password }) => {
+    const data = await loginApi(username, password);
+    return data;  // { user: {...}, permissions: [...] }
+  }
+);
+
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (workspaceId) => {
+    const data = await fetchMeApi(workspaceId);
+    return data;  // { user: {...}, permissions: [...] }
+  }
+);
+
+export const logout = createAsyncThunk(
+  'auth/logout',
+  async () => {
+    await logoutApi();
+  }
+);
+
+const initialState = {
+  user: null,
+  permissions: [],
+  status: 'idle',  // idle | loading | succeeded | failed
+  error: null,
+  isAuthenticated: false,
+  activeWorkspaceId: localStorage.getItem('lastWorkspaceId') || null,
+};
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    clearAuth: (state) => {
+      state.user = null;
+      state.permissions = [];
+      state.isAuthenticated = false;
+      state.error = null;
+    },
+    setActiveWorkspaceId: (state, action) => {
+      state.activeWorkspaceId = action.payload;
+      localStorage.setItem('lastWorkspaceId', action.payload);
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Login flow
+      .addCase(login.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      })
+      // Fetch current user (verify session)
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.permissions = action.payload.permissions || [];
+        state.isAuthenticated = true;
+        state.status = 'succeeded';
+      })
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        state.user = null;
+        state.permissions = [];
+        state.isAuthenticated = false;
+        state.status = 'failed';
+      })
+      // Logout
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.permissions = [];
+        state.isAuthenticated = false;
+        state.status = 'idle';
+      });
+  },
+});
+
+export const { clearAuth, setActiveWorkspaceId } = authSlice.actions;
+
+// Selectors
+export const selectCurrentUser = (state) => state.auth.user;
+export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
+export const selectPermissions = (state) => state.auth.permissions;
+export const selectAuthStatus = (state) => state.auth.status;
+
+export default authSlice.reducer;
+```
+
 ## Routing Standards
 
 ### Route Configuration
@@ -249,6 +494,66 @@ function App() {
   );
 }
 ```
+
+### Nested Workspace URLs
+
+**Nested Workspace URL Pattern:**
+```
+/w/:workspaceId/
+├── dashboard
+├── projects
+├── projects/:projectId
+│   ├── overview
+│   ├── tasks
+│   └── settings
+├── team
+└── settings
+```
+
+**Implementation:**
+```jsx
+// App.jsx
+<Route path="/w/:workspaceId/*" element={<WorkspaceLayout />} />
+
+// WorkspaceLayout.jsx
+import { useParams, Routes, Route, Outlet } from 'react-router-dom';
+
+export default function WorkspaceLayout() {
+  const { workspaceId } = useParams();
+
+  return (
+    <Layout>
+      <Routes>
+        <Route index element={<WorkspaceDashboard />} />
+        <Route path="projects" element={<Projects />} />
+        <Route path="projects/:projectId/*" element={<ProjectLayout />} />
+        <Route path="team" element={<Team />} />
+        <Route path="settings" element={<WorkspaceSettings />} />
+      </Routes>
+    </Layout>
+  );
+}
+
+// ProjectLayout.jsx
+export default function ProjectLayout() {
+  const { workspaceId, projectId } = useParams();
+
+  return (
+    <Routes>
+      <Route index element={<ProjectOverview />} />
+      <Route path="tasks" element={<ProjectTasks />} />
+      <Route path="tasks/:taskId" element={<TaskDetails />} />
+      <Route path="settings" element={<ProjectSettings />} />
+    </Routes>
+  );
+}
+```
+
+**Benefits:**
+- Workspace ID always available via useParams
+- Clean URL structure matching backend API paths
+- Easier permission checks (workspace context available)
+- Better for analytics and user tracking
 
 ### Navigation Patterns
 

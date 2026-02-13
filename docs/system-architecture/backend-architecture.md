@@ -1,76 +1,321 @@
-# Backend Architecture (Future)
+# Backend Architecture
 
-## Future Backend Architecture
+## Spring Boot Backend with JWT & RBAC
 
-This document outlines the planned backend architecture for Phase 1+ of the project.
+This document describes the implemented backend architecture and authentication/authorization system.
 
-**Current Status:** Frontend-only prototype
-**Target:** Full-stack application with REST/GraphQL API
+**Current Status:** Spring Boot backend with JWT authentication and RBAC permission system (Phase 1 complete)
+**Technology:** Java 17+, Spring Boot 3.x, Spring Security, PostgreSQL, Prisma ORM
 
 
-#### JWT-Based Authentication
+## JWT-Based Authentication (Implemented)
+
+### Authentication Flow
 
 ```
 1. User Login
    ├─► Client POSTs credentials to /api/auth/login
-   ├─► Server validates credentials
-   ├─► Server generates JWT (access + refresh tokens)
-   └─► Client stores tokens (httpOnly cookies or localStorage)
+   ├─► Server validates credentials via CustomUserDetailsService
+   ├─► Server generates JWT pair (access + refresh tokens)
+   │   ├─ Access token: 15 min expiry, HS512 signed
+   │   └─ Refresh token: 7 day expiry, stored in RefreshToken table
+   ├─► Server sets httpOnly cookies (secure, sameSite=Strict)
+   └─► Client receives AuthResponse with user data
 
 2. Authenticated Request
-   ├─► Client includes JWT in Authorization header
-   ├─► Server validates JWT signature and expiration
-   ├─► Server extracts user ID from token
-   ├─► Server processes request with user context
-   └─► Server responds with data
+   ├─► JwtAuthenticationFilter intercepts request
+   ├─► Extracts JWT from Authorization header or httpOnly cookie
+   ├─► JwtService validates signature, expiration, and type
+   ├─► CustomUserDetailsService loads user from database
+   ├─► SecurityContext populated with CustomUserDetails + authorities
+   ├─► @PreAuthorize(@perm.hasPermission(...)) evaluated
+   └─► Response sent with user context available
 
 3. Token Refresh
-   ├─► Access token expires (short-lived, 15 min)
-   ├─► Client uses refresh token to get new access token
-   └─► Server issues new access token
+   ├─► Access token expires or about to expire
+   ├─► Client calls POST /api/auth/refresh with refresh token
+   ├─► AuthService validates refresh token from RefreshToken table
+   ├─► New access token generated + old one invalidated
+   ├─► New refresh token issued (rotation)
+   └─► Updated cookies sent to client
 
 4. Logout
-   ├─► Client calls /api/auth/logout
-   ├─► Server invalidates refresh token (blacklist)
-   └─► Client deletes stored tokens
+   ├─► Client calls POST /api/auth/logout
+   ├─► AuthService deletes RefreshToken from database
+   ├─► httpOnly cookies cleared
+   ├─► Client-side auth state cleared
+   └─► User redirected to /login
+
+5. Permission-Protected Endpoint
+   ├─► Controller method annotated with @PreAuthorize
+   ├─► Example: @PreAuthorize("@perm.hasPermission(#userId, #workspaceId, 'workspace:edit')")
+   ├─► PermissionEvaluator.hasPermission() called with userId, workspaceId, permission
+   ├─► PermissionService queries RolePermission + WorkspaceMember tables
+   ├─► Cache lookup (Redis) for role→permissions mapping
+   ├─► Returns true/false, framework denies access if false
+   └─► Response 403 Forbidden if permission denied
 ```
 
-#### Role-Based Access Control (RBAC)
+### Token Structure
 
-**Workspace Roles:**
-- **ADMIN:** Full control (manage workspace, projects, members)
-- **MEMBER:** Limited access (view, create tasks, update own tasks)
-
-**Permission Matrix:**
-
-| Action | Workspace Admin | Workspace Member |
-|--------|----------------|------------------|
-| Create Project | ✓ | ✗ |
-| Edit Project | ✓ | Project Member Only |
-| Delete Project | ✓ | ✗ |
-| Add Workspace Member | ✓ | ✗ |
-| Create Task | ✓ | ✓ (in assigned projects) |
-| Edit Task | ✓ | ✓ (assignee or project member) |
-| Delete Task | ✓ | ✗ |
-| View Analytics | ✓ | ✓ (assigned projects) |
-
-**Implementation:**
-```javascript
-// Middleware example
-async function requireWorkspaceAdmin(req, res, next) {
-  const { workspaceId } = req.params;
-  const userId = req.user.id;
-
-  const member = await db.workspaceMember.findFirst({
-    where: { workspaceId, userId, role: 'ADMIN' }
-  });
-
-  if (!member) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  next();
+**Access Token Claims:**
+```json
+{
+  "sub": "user@example.com",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "access",
+  "iat": 1644856800,
+  "exp": 1644860400
 }
+```
+
+**Refresh Token Claims:**
+```json
+{
+  "sub": "user@example.com",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "refresh",
+  "iat": 1644856800,
+  "exp": 1660502400
+}
+```
+
+### Security Measures
+
+- **Algorithm:** HS512 (HMAC SHA-512)
+- **Secret:** Configured in application.yml, minimum 64 bytes
+- **httpOnly Cookies:** Prevents JavaScript access (XSS protection)
+- **Secure Flag:** HTTPS only (production)
+- **SameSite:** Strict to prevent CSRF
+- **Expiration:** Access token short-lived (15 min), refresh token long-lived (7 days)
+- **Rotation:** Old refresh tokens invalidated on new token issuance
+- **Stateless:** No session storage on server (JWT contains all required info)
+
+## Role-Based Access Control (RBAC) - 3-Level System (Implemented)
+
+### Hierarchy
+
+```
+Workspace Level
+├─ OWNER (special, highest privilege)
+├─ ADMIN (manage workspace, projects, members)
+└─ MEMBER (limited access, workspace-level)
+    │
+    └─ Project Level (members of specific project)
+       ├─ LEAD (manage project, assign members)
+       └─ MEMBER (create/view tasks)
+           │
+           └─ Task Level (granular permissions)
+              ├─ CREATOR (edit own task)
+              └─ ASSIGNEE (edit own task)
+```
+
+### Permission Model
+
+**System Permissions** (stored in Permission table):
+- Granular permission names: `workspace:create_project`, `workspace:delete_member`, `project:edit`, `task:delete`, etc.
+- Defined in database, managed by admins
+- Reusable across roles and workspaces
+
+**Role-Permission Mapping** (RolePermission table):
+- Maps roles to permissions with optional workspace override
+- **Global defaults** (workspaceId=NULL): Apply to all workspaces
+- **Workspace overrides** (workspaceId=ABC123): Workspace-specific customization
+- Examples:
+  - OWNER: No entry (always bypassed)
+  - ADMIN: Set of workspace management permissions (global default)
+  - MEMBER: Limited permissions (can be customized per workspace)
+
+**Workspace Roles** (Enum):
+```java
+public enum WorkspaceRole {
+  OWNER,      // Workspace creator, full control
+  ADMIN,      // Manage projects, members (no workspace deletion)
+  MEMBER      // View workspace, create tasks in projects
+}
+```
+
+**Project Roles** (Enum):
+```java
+public enum ProjectRole {
+  LEAD,       // Manage project, edit settings
+  MEMBER      // Create/view tasks
+}
+```
+
+### Database Schema
+
+```sql
+CREATE TABLE permission (
+  id UUID PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,   -- e.g., "workspace:create_project"
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE role_permission (
+  id UUID PRIMARY KEY,
+  role VARCHAR(50) NOT NULL,           -- OWNER, ADMIN, MEMBER, LEAD
+  permission_id UUID NOT NULL,
+  workspace_id UUID,                   -- NULL = global default, non-NULL = override
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (permission_id) REFERENCES permission(id),
+  FOREIGN KEY (workspace_id) REFERENCES workspace(id),
+  UNIQUE(role, permission_id, workspace_id)
+);
+
+CREATE TABLE workspace_member (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  workspace_id UUID NOT NULL,
+  role VARCHAR(50) NOT NULL,           -- OWNER, ADMIN, MEMBER
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES "user"(id),
+  FOREIGN KEY (workspace_id) REFERENCES workspace(id),
+  UNIQUE(user_id, workspace_id)
+);
+
+CREATE TABLE project_member (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  project_id UUID NOT NULL,
+  role VARCHAR(50) NOT NULL,           -- LEAD, MEMBER
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES "user"(id),
+  FOREIGN KEY (project_id) REFERENCES project(id),
+  UNIQUE(user_id, project_id)
+);
+```
+
+### Permission Evaluation Flow
+
+**PermissionService Logic:**
+
+```java
+// 1. Check workspace membership + role
+WorkspaceMember member = workspaceMemberRepository
+  .findByUserIdAndWorkspaceId(userId, workspaceId);
+
+// 2. OWNER bypasses everything
+if (member.getRole() == WorkspaceRole.OWNER) return true;
+
+// 3. Get permissions for role + workspace
+Set<String> perms = getPermissionsForRole(role, workspaceId);
+// - Checks workspace-specific overrides first
+// - Falls back to global defaults
+// - Results cached in Redis
+
+// 4. Check if permission in set
+return perms.contains(permissionName);
+```
+
+**Spring Security Integration:**
+
+```java
+// Example controller method with @PreAuthorize
+@DeleteMapping("/workspaces/{wid}/projects/{pid}")
+@PreAuthorize("@perm.hasProjectPermission(#userId, #wid, #pid, 'project:delete')")
+public ResponseEntity<Void> deleteProject(
+    @PathVariable String wid,
+    @PathVariable String pid,
+    @AuthenticationPrincipal CustomUserDetails user) {
+  // userId extracted from CustomUserDetails
+  // Permission evaluated by PermissionEvaluator.hasPermission()
+  // Returns 403 if denied
+  return ResponseEntity.noContent().build();
+}
+```
+
+### API Endpoints for Permission Management
+
+```
+GET /api/workspaces/{workspaceId}/role-permissions
+  Description: List all roles and their permissions in workspace
+  Response: { roles: [{ role: "ADMIN", permissions: ["workspace:create_project", ...] }] }
+  Requires: workspace:admin permission
+
+PUT /api/admin/workspaces/{workspaceId}/role-permissions
+  Description: Update workspace-specific role permissions
+  Request: { role: "MEMBER", permissionNames: ["workspace:view", ...] }
+  Response: { message: "Role permissions updated" }
+  Requires: workspace:admin permission
+  Effect: Invalidates Redis cache, new rules apply immediately
+
+GET /api/admin/permissions
+  Description: List all available permissions
+  Response: [{ id: "...", name: "workspace:create_project", description: "..." }]
+  Requires: System admin role
+
+GET /api/auth/me?workspaceId={id}
+  Description: Get current user + permissions in workspace
+  Response: { user: {...}, permissions: ["workspace:view", "project:create", ...] }
+  Requires: Authenticated
+```
+
+### Caching Strategy
+
+**Redis Cache for Permissions:**
+- Key: `rolePermissions:{role}:{workspaceId}`
+- TTL: 5 minutes (configurable)
+- Invalidation: On permission update via @CacheEvict(allEntries=true)
+- Fallback: Database query on cache miss
+
+**Example Cache Flow:**
+```
+1. Request to check "project:edit" permission
+2. Cache lookup: rolePermissions:ADMIN:550e8400-e29b
+3. Cache hit → Return cached permission set
+4. Cache miss → Query database for RolePermission entries
+5. Store in cache with 5min TTL
+6. Return permissions to PermissionService
+7. Permission check evaluates against cached set
+```
+
+### Permission Matrix (Default)
+
+| Permission | OWNER | ADMIN | MEMBER | PROJECT_LEAD | PROJECT_MEMBER |
+|-----------|-------|-------|--------|--------------|-----------------|
+| workspace:create_project | ✓ | ✓ | ✗ | N/A | N/A |
+| workspace:edit | ✓ | ✓ | ✗ | N/A | N/A |
+| workspace:delete | ✓ | ✗ | ✗ | N/A | N/A |
+| workspace:add_member | ✓ | ✓ | ✗ | N/A | N/A |
+| workspace:remove_member | ✓ | ✓ | ✗ | N/A | N/A |
+| project:view | ✓ | ✓ | ✓ | ✓ | ✓ |
+| project:edit | ✓ | ✓ | ✗ | ✓ | ✗ |
+| project:delete | ✓ | ✓ | ✗ | ✗ | ✗ |
+| task:create | ✓ | ✓ | ✓ | ✓ | ✓ |
+| task:edit | ✓ | ✓ | Own Only | ✓ | Own Only |
+| task:delete | ✓ | ✓ | ✗ | ✓ | ✗ |
+
+### Frontend Permission Usage
+
+**usePermission Hook:**
+```javascript
+const { permissions, has, hasAny, hasAll } = usePermission();
+
+// Single permission
+if (has('workspace:create_project')) {
+  // Show create project button
+}
+
+// Any of multiple
+if (hasAny(['project:delete', 'admin:manage'])) {
+  // Show delete button
+}
+
+// All permissions
+if (hasAll(['workspace:admin', 'audit:view'])) {
+  // Show audit reports
+}
+```
+
+**PermissionGate Component (future):**
+```jsx
+<PermissionGate permission="project:edit">
+  <EditButton />
+</PermissionGate>
+
+// Falls back to null or custom fallback component if permission denied
 ```
 
 ### Database Architecture

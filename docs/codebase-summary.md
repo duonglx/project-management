@@ -2,40 +2,107 @@
 
 ## Overview
 
-Frontend-only SPA project management platform built with React 19, Vite 7, and Tailwind CSS 4. All data currently handled via Redux Toolkit with dummy data. No backend integration yet.
+Full-stack project management platform with Spring Boot backend (Java 17+, PostgreSQL) and React 19 frontend. Implements JWT-based authentication with httpOnly cookies and 3-level RBAC permission system (workspace > project > task). Built with Vite 7 and Tailwind CSS 4.
 
-**Total Lines of Code:** ~3,695 LOC (src directory)
-**Files:** 30+ component/page files
-**Architecture:** Component-based SPA with Redux state management
+**Frontend LOC:** ~4,000+ LOC (src directory with auth/RBAC)
+**Backend:** Spring Boot microservices with Spring Security, Prisma ORM
+**Database:** PostgreSQL with migrations
+**Architecture:** REST API backend with component-based React SPA, Redux state management
 
 ## Directory Structure
 
 ```
 project-management/
-├── src/                        # Application source code (3695 LOC)
-│   ├── App.jsx                 # Route definitions (27 LOC)
-│   ├── main.jsx                # App entry point (13 LOC)
-│   ├── index.css               # Global styles (67 LOC)
-│   ├── app/                    # Redux configuration
-│   │   └── store.js            # Store setup (9 LOC)
-│   ├── assets/                 # Static assets and dummy data
-│   │   ├── assets.js           # Mock data (459 LOC)
-│   │   ├── schema.prisma       # DB schema reference (146 LOC)
+├── src/                        # Frontend React application (4000+ LOC)
+│   ├── App.jsx                 # Route definitions with protected routes
+│   ├── main.jsx                # App entry point
+│   ├── index.css               # Global styles
+│   ├── app/                    # Redux store configuration
+│   │   └── store.js            # Store setup with auth + workspace slices
+│   ├── assets/                 # Static assets and data
+│   │   ├── assets.js           # Mock data
+│   │   ├── schema.prisma       # Prisma schema reference
 │   │   └── images/             # SVG/PNG assets
-│   ├── components/             # Reusable components (18 files, ~2400 LOC)
-│   ├── features/               # Redux slices
-│   │   ├── workspaceSlice.js   # Workspace state (109 LOC)
-│   │   └── themeSlice.js       # Theme state (32 LOC)
-│   └── pages/                  # Route pages (6 files)
-├── public/                     # Static public assets
+│   ├── components/             # Reusable UI components (20+ files, ~2400 LOC)
+│   │   ├── ProtectedRoute.jsx  # JWT authentication wrapper
+│   │   ├── PermissionGate.jsx  # Permission-based component gating
+│   │   └── ...                 # Other UI components
+│   ├── features/               # Redux slices for state management
+│   │   ├── auth-slice.js       # Auth state (login, logout, permissions)
+│   │   ├── workspaceSlice.js   # Workspace/project/task state
+│   │   └── themeSlice.js       # Theme state
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── use-permission.js   # Permission checking utilities
+│   │   └── use-auth.js         # Auth utilities
+│   ├── services/               # API client services
+│   │   ├── auth-api.js         # Auth endpoints
+│   │   └── api-client.js       # HTTP client with JWT handling
+│   ├── pages/                  # Route pages (7 files)
+│   │   ├── LoginPage.jsx       # Login form page
+│   │   ├── Dashboard.jsx       # Main dashboard
+│   │   └── ...                 # Other pages
+│   └── utils/                  # Utility functions
+├── backend/                    # Spring Boot Java backend
+│   ├── src/main/java/com/shbvn/jms/
+│   │   ├── controller/         # REST API endpoints
+│   │   │   ├── AuthController.java       # /api/auth/* endpoints
+│   │   │   ├── WorkspaceController.java  # Workspace CRUD
+│   │   │   ├── ProjectController.java    # Project CRUD
+│   │   │   ├── TaskController.java       # Task CRUD
+│   │   │   ├── RolePermissionController.java  # Permission management
+│   │   │   └── AdminController.java      # Admin endpoints
+│   │   ├── service/            # Business logic
+│   │   │   ├── AuthService.java          # JWT token generation & validation
+│   │   │   ├── PermissionService.java    # RBAC permission checks
+│   │   │   ├── WorkspaceService.java     # Workspace operations
+│   │   │   ├── ProjectService.java       # Project operations
+│   │   │   └── UserService.java          # User management
+│   │   ├── security/           # Spring Security implementation
+│   │   │   ├── JwtService.java           # JWT token creation & parsing
+│   │   │   ├── JwtAuthenticationFilter.java  # JWT filter for requests
+│   │   │   ├── CustomUserDetailsService.java # User loading from DB
+│   │   │   ├── CustomUserDetails.java    # User details with ID
+│   │   │   └── PermissionEvaluator.java  # Custom @PreAuthorize evaluator
+│   │   ├── config/             # Spring configuration
+│   │   │   ├── SecurityConfig.java       # Security filter chain setup
+│   │   │   └── CorsConfig.java           # CORS configuration
+│   │   ├── model/              # JPA entities
+│   │   │   ├── User.java
+│   │   │   ├── Workspace.java
+│   │   │   ├── WorkspaceMember.java
+│   │   │   ├── Project.java
+│   │   │   ├── ProjectMember.java
+│   │   │   ├── Task.java
+│   │   │   ├── Permission.java           # Permission entity
+│   │   │   ├── RolePermission.java       # Role-to-Permission mapping
+│   │   │   └── RefreshToken.java         # Refresh token storage
+│   │   ├── repository/         # Database access layer
+│   │   │   ├── UserRepository.java
+│   │   │   ├── WorkspaceMemberRepository.java
+│   │   │   ├── PermissionRepository.java
+│   │   │   ├── RolePermissionRepository.java
+│   │   │   └── RefreshTokenRepository.java
+│   │   ├── dto/                # Data transfer objects
+│   │   │   ├── request/        # Request DTOs
+│   │   │   │   ├── LoginRequest.java
+│   │   │   │   └── UpdateRolePermissionsRequest.java
+│   │   │   └── response/       # Response DTOs
+│   │   │       ├── AuthResponse.java     # Login response with tokens
+│   │   │       ├── AuthMeResponse.java   # Current user + permissions
+│   │   │       └── RolePermissionResponse.java
+│   │   └── mapper/             # MapStruct entity-DTO mappers
+│   ├── src/main/resources/
+│   │   ├── application.yml     # Server config, JWT secrets
+│   │   └── db/migration/       # Flyway/Liquibase migrations
+│   ├── pom.xml                 # Maven dependencies
+│   └── target/                 # Build output
 ├── docs/                       # Project documentation
-├── .claude/                    # Claude Code configuration
-├── plans/                      # Development plans and reports
+├── plans/                      # Development plans
 ├── index.html                  # SPA entry HTML
 ├── vite.config.js              # Vite configuration
 ├── eslint.config.js            # ESLint 9 flat config
-├── package.json                # Dependencies and scripts
-└── tailwind.config.js          # Tailwind CSS configuration (if exists)
+├── package.json                # Frontend dependencies
+└── tsconfig.json               # TypeScript config (if applicable)
 ```
 
 ## File Descriptions
@@ -484,6 +551,192 @@ project-management/
 - Scrollable project list
 - Empty state when no projects
 - Responsive width
+
+## JWT Authentication System
+
+### Overview
+JWT-based authentication with httpOnly cookie storage for enhanced security. Access tokens (15 min expiry) + refresh tokens (7 day expiry) with rotation mechanism.
+
+### Backend Components
+
+**JwtService.java** - Token generation and validation
+- `generateAccessToken(userDetails)`: Creates short-lived access token with userId claim
+- `generateRefreshToken(userDetails)`: Creates long-lived refresh token
+- `extractUsername(token)`: Parses username from token claims
+- `extractUserId(token)`: Extracts userId from token
+- `isTokenValid(token, userDetails)`: Validates signature and expiration
+- Token signing with HS512 algorithm (HMAC secret from config)
+
+**JwtAuthenticationFilter.java** - Request interceptor
+- Extracts JWT from Authorization header or httpOnly cookies
+- Validates token and loads user from CustomUserDetailsService
+- Sets SecurityContext for @PreAuthorize evaluation
+- Passes unauthenticated requests to next filter
+
+**CustomUserDetailsService.java** - User loader
+- Loads User entity from database by username
+- Converts to Spring SecurityContext-compatible CustomUserDetails
+- Handles user not found exceptions
+
+**SecurityConfig.java** - Spring Security setup
+- CORS configuration (localhost:5173 allowed)
+- CSRF disabled for stateless API
+- Session creation disabled (JWT stateless)
+- JwtAuthenticationFilter registered before UsernamePasswordAuthenticationFilter
+- @PreAuthorize enabled for method-level security
+- Public endpoints: /api/auth/login, /api/auth/refresh, /api/health
+
+**AuthService.java** - Authentication business logic
+- `login(request, response)`: Validates credentials, generates tokens, sets httpOnly cookies
+- `refresh(request, response)`: Validates refresh token, issues new access token
+- `logout(request, response)`: Clears refresh token from database and cookies
+- Token rotation strategy: invalidate old refresh tokens
+
+### Frontend Components
+
+**auth-slice.js** - Redux auth state
+- `login`: Async thunk dispatching loginApi
+- `fetchCurrentUser`: Loads user + permissions from /api/auth/me
+- `logout`: Calls logoutApi
+- State: user, permissions, isAuthenticated, status, error, activeWorkspaceId
+
+**ProtectedRoute.jsx** - Route wrapper
+- Checks isAuthenticated status on mount
+- Dispatches fetchCurrentUser if needed
+- Shows loading spinner while verifying auth
+- Redirects to /login if authentication fails
+
+**useAuth.js** - Auth hook (future)
+- Returns user, isAuthenticated, loading state
+- Provides login/logout/refresh functions
+
+**LoginPage.jsx** - Login form
+- Email/password inputs
+- Submits to /api/auth/login via auth-api service
+- Stores JWT in httpOnly cookies automatically
+- Redirects to workspace dashboard on success
+
+**auth-api.js** - API service layer
+- `loginApi(username, password)`: POST /api/auth/login
+- `fetchMeApi(workspaceId)`: GET /api/auth/me?workspaceId={id}
+- `logoutApi()`: POST /api/auth/logout
+- Auto-includes JWT from httpOnly cookies in all requests
+
+### API Endpoints
+
+```
+POST /api/auth/login
+  Request: { username, password }
+  Response: { user, accessToken, refreshToken }
+
+GET /api/auth/me?workspaceId={id}
+  Response: { user, permissions }
+
+POST /api/auth/refresh
+  Response: { accessToken, refreshToken }
+
+POST /api/auth/logout
+  Response: {}
+```
+
+## RBAC Permission System (3-Level)
+
+### Architecture
+
+**Level 1: Workspace Permissions**
+- OWNER: Full control (manages workspace, projects, members)
+- ADMIN: Manage workspace (projects, members, but can't delete workspace)
+- MEMBER: Limited (view, create tasks in assigned projects)
+
+**Level 2: Project Permissions**
+- LEAD: Manage project (edit, delete, assign members)
+- MEMBER: Create/edit own tasks, view project
+
+**Level 3: Task Permissions**
+- ASSIGNEE: Edit own task
+- CREATOR: Edit own task
+- PROJECT_MEMBER: View task
+
+### Backend Components
+
+**Permission.java** - Permission entity
+- Fields: id, name (e.g., "workspace:create_project"), description
+- Persisted in database, managed by admins
+
+**RolePermission.java** - Role-to-Permission mapping
+- Fields: id, role (enum), workspaceId (nullable for global defaults), permission_id
+- workspaceId=null = system default (all workspaces)
+- workspaceId=ABC = workspace-specific override
+
+**PermissionService.java** - Core permission logic
+- `getPermissionsForRole(role, workspaceId)`: Returns Set<String> of permission names
+  - Checks workspace overrides first, falls back to system defaults
+  - Cacheable for performance
+- `hasPermission(userId, workspaceId, permissionName)`: Boolean check
+  - OWNER bypasses all checks
+  - Returns false if user not member
+- `hasProjectPermission(userId, workspaceId, projectId, permissionName)`: Checks project role
+  - Workspace ADMIN has implicit project permissions
+  - Workspace OWNER bypasses all checks
+- `getUserPermissions(userId, workspaceId)`: Returns List<String> of all permissions for user
+- `isMember(userId, workspaceId)`: Quick membership check
+- `updateRolePermissions(workspaceId, role, permissionNames)`: Admin-only update with cache invalidation
+
+**PermissionEvaluator.java** - Custom evaluator for @PreAuthorize
+- Implements Spring's PermissionEvaluator interface
+- Called by `@PreAuthorize("@perm.hasPermission(...)")` expressions
+- Integrates PermissionService into method-level security
+
+**AdminService.java** - Admin operations
+- `updateRolePermissions()`: Update workspace-specific role permissions
+- Cache invalidation on permission changes
+
+### API Endpoints
+
+```
+GET /api/workspaces/{workspaceId}/role-permissions
+  Response: { roles: [{ role, permissions: [...] }] }
+
+PUT /api/admin/workspaces/{workspaceId}/role-permissions
+  Request: { role, permissionNames: [...] }
+  Response: { message: "Updated" }
+
+GET /api/admin/permissions
+  Response: [{ id, name, description }, ...]
+```
+
+### Frontend Components
+
+**usePermission.js** - Permission hook
+- `permissions`: Array of permission strings from auth state
+- `has(perm)`: Boolean check for single permission
+- `hasAny(perms)`: Boolean check for any permission in array
+- `hasAll(perms)`: Boolean check for all permissions in array
+- Memoized for performance
+
+**PermissionGate.jsx** - Conditional rendering (future)
+- Wraps content requiring specific permission
+- Props: permission/permissions, fallback component
+- Example: `<PermissionGate permission="workspace:edit_project">Edit button</PermissionGate>`
+
+**RoleManagement.jsx** - Admin role config UI (future)
+- Lists roles (OWNER, ADMIN, MEMBER)
+- Shows permissions for each role
+- Allows updating workspace-specific overrides
+- Calls PUT /api/admin/workspaces/{id}/role-permissions
+
+**AdminUsersPage.jsx** - User management (future)
+- Lists workspace members by role
+- Change member roles
+- Remove members
+- Calls API endpoints for management
+
+### Permission Caching
+
+- Redis cache key: `rolePermissions:{role}:{workspaceId}`
+- TTL: 5 minutes (configurable)
+- Cache invalidated on permission updates
+- Fallback to database if cache miss
 
 ## Component Hierarchy
 

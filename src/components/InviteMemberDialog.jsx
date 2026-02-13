@@ -12,7 +12,7 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
-        role: "org:member",
+        role: "MEMBER",
     });
 
     const handleSubmit = async (e) => {
@@ -35,7 +35,7 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
             toast.success("Invitation sent successfully");
             setIsDialogOpen(false);
-            setFormData({ email: "", role: "org:member" });
+            setFormData({ email: "", role: "MEMBER" });
         } catch (error) {
             toast.error(error?.data?.message || error.message || "Failed to send invitation");
         } finally {
@@ -85,8 +85,8 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">Role</label>
                         <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full rounded border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200 py-2 px-3 mt-1 focus:outline-none focus:border-blue-500 text-sm" >
-                            <option value="org:member">Member</option>
-                            <option value="org:admin">Admin</option>
+                            <option value="MEMBER">Member</option>
+                            <option value="ADMIN">Admin</option>
                         </select>
                     </div>
 

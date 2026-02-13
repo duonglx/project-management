@@ -1,5 +1,6 @@
 package com.shbvn.jms.model;
 
+import com.shbvn.jms.model.enums.ProjectRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +36,11 @@ public class ProjectMember {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", insertable = false, updatable = false)
     private Project project;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    @Builder.Default
+    private ProjectRole role = ProjectRole.CONTRIBUTOR;
 
     @PrePersist
     protected void onCreate() {

@@ -168,4 +168,36 @@ public class WorkspaceService {
     public Page<WorkspaceMember> getMembers(String workspaceId, Pageable pageable) {
         return workspaceMemberRepository.findByWorkspaceId(workspaceId, pageable);
     }
+
+    @Transactional
+    public void transferOwnership(String workspaceId, String newOwnerId) {
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace", "id", workspaceId));
+
+        // Verify new owner is an ADMIN in the workspace
+        WorkspaceMember newOwnerMember = workspaceMemberRepository
+                .findByUserIdAndWorkspaceId(newOwnerId, workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not a workspace member"));
+
+        if (newOwnerMember.getRole() != WorkspaceRole.ADMIN) {
+            throw new IllegalArgumentException("Can only transfer ownership to an ADMIN");
+        }
+
+        // Demote old owner to ADMIN
+        WorkspaceMember oldOwnerMember = workspaceMemberRepository
+                .findByUserIdAndWorkspaceId(workspace.getOwnerId(), workspaceId)
+                .orElse(null);
+        if (oldOwnerMember != null) {
+            oldOwnerMember.setRole(WorkspaceRole.ADMIN);
+            workspaceMemberRepository.save(oldOwnerMember);
+        }
+
+        // Promote new owner
+        newOwnerMember.setRole(WorkspaceRole.OWNER);
+        workspaceMemberRepository.save(newOwnerMember);
+
+        // Update workspace owner
+        workspace.setOwnerId(newOwnerId);
+        workspaceRepository.save(workspace);
+    }
 }

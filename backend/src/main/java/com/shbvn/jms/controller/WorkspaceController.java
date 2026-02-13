@@ -10,94 +10,112 @@ import com.shbvn.jms.dto.response.WorkspaceResponse;
 import com.shbvn.jms.model.Workspace;
 import com.shbvn.jms.model.WorkspaceMember;
 import com.shbvn.jms.model.enums.WorkspaceRole;
+import com.shbvn.jms.security.CustomUserDetails;
 import com.shbvn.jms.service.WorkspaceService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/workspaces")
+@RequestMapping("/api/workspaces")
+@RequiredArgsConstructor
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
     private final WorkspaceMapper workspaceMapper;
     private final WorkspaceMemberMapper workspaceMemberMapper;
 
-    public WorkspaceController(WorkspaceService workspaceService,
-                               WorkspaceMapper workspaceMapper,
-                               WorkspaceMemberMapper workspaceMemberMapper) {
-        this.workspaceService = workspaceService;
-        this.workspaceMapper = workspaceMapper;
-        this.workspaceMemberMapper = workspaceMemberMapper;
-    }
-
     @GetMapping
     public ResponseEntity<Page<WorkspaceResponse>> getWorkspaces(
-            @RequestParam String userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable) {
-        Page<Workspace> workspaces = workspaceService.getWorkspacesByUserId(userId, pageable);
+        Page<Workspace> workspaces = workspaceService.getWorkspacesByUserId(userDetails.getId(), pageable);
         Page<WorkspaceResponse> response = workspaces.map(workspaceMapper::toResponse);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public ResponseEntity<WorkspaceResponse> createWorkspace(@Valid @RequestBody CreateWorkspaceRequest request) {
+    @PreAuthorize("@perm.isAdminWorkspace()")
+    public ResponseEntity<WorkspaceResponse> createWorkspace(
+            @Valid @RequestBody CreateWorkspaceRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         Workspace workspace = Workspace.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .ownerId(request.getOwnerId())
+                .ownerId(request.getOwnerId() != null ? request.getOwnerId() : userDetails.getId())
                 .build();
 
-        Workspace created = workspaceService.createWorkspace(workspace, request.getOwnerId());
-        WorkspaceResponse response = workspaceMapper.toResponse(created);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        Workspace created = workspaceService.createWorkspace(workspace,
+                request.getOwnerId() != null ? request.getOwnerId() : userDetails.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMapper.toResponse(created));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<WorkspaceResponse> getWorkspaceById(@PathVariable String id) {
-        Workspace workspace = workspaceService.getWorkspaceById(id);
-        WorkspaceResponse response = workspaceMapper.toResponse(workspace);
-        return ResponseEntity.ok(response);
+    @GetMapping("/{workspaceId}")
+    @PreAuthorize("@perm.isMember(#workspaceId)")
+    public ResponseEntity<WorkspaceResponse> getWorkspaceById(@PathVariable String workspaceId) {
+        Workspace workspace = workspaceService.getWorkspaceById(workspaceId);
+        return ResponseEntity.ok(workspaceMapper.toResponse(workspace));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{workspaceId}")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_settings')")
     public ResponseEntity<WorkspaceResponse> updateWorkspace(
-            @PathVariable String id,
+            @PathVariable String workspaceId,
             @Valid @RequestBody UpdateWorkspaceRequest request) {
         Workspace updates = Workspace.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
                 .build();
-
-        Workspace updated = workspaceService.updateWorkspace(id, updates);
-        WorkspaceResponse response = workspaceMapper.toResponse(updated);
-        return ResponseEntity.ok(response);
+        Workspace updated = workspaceService.updateWorkspace(workspaceId, updates);
+        return ResponseEntity.ok(workspaceMapper.toResponse(updated));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteWorkspace(@PathVariable String id) {
-        workspaceService.deleteWorkspace(id);
+    @DeleteMapping("/{workspaceId}")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_settings')")
+    public ResponseEntity<Void> deleteWorkspace(@PathVariable String workspaceId) {
+        workspaceService.deleteWorkspace(workspaceId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/members")
+    @GetMapping("/{workspaceId}/members")
+    @PreAuthorize("@perm.isMember(#workspaceId)")
+    public ResponseEntity<Page<WorkspaceMemberResponse>> getMembers(
+            @PathVariable String workspaceId, Pageable pageable) {
+        Page<WorkspaceMember> members = workspaceService.getMembers(workspaceId, pageable);
+        return ResponseEntity.ok(members.map(workspaceMemberMapper::toResponse));
+    }
+
+    @PostMapping("/{workspaceId}/members")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_members')")
     public ResponseEntity<WorkspaceMemberResponse> addMember(
-            @PathVariable String id,
+            @PathVariable String workspaceId,
             @Valid @RequestBody AddMemberRequest request) {
         WorkspaceRole role = request.getRole() != null ? request.getRole() : WorkspaceRole.MEMBER;
-        WorkspaceMember member = workspaceService.addMember(id, request.getUserId(), role, request.getMessage());
-        WorkspaceMemberResponse response = workspaceMemberMapper.toResponse(member);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        WorkspaceMember member = workspaceService.addMember(workspaceId, request.getUserId(), role, request.getMessage());
+        return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMemberMapper.toResponse(member));
     }
 
-    @DeleteMapping("/{id}/members/{userId}")
-    public ResponseEntity<Void> removeMember(@PathVariable String id, @PathVariable String userId) {
-        workspaceService.removeMember(id, userId);
+    @DeleteMapping("/{workspaceId}/members/{userId}")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_members')")
+    public ResponseEntity<Void> removeMember(@PathVariable String workspaceId, @PathVariable String userId) {
+        workspaceService.removeMember(workspaceId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{workspaceId}/transfer-ownership")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_settings')")
+    public ResponseEntity<Void> transferOwnership(
+            @PathVariable String workspaceId,
+            @RequestBody java.util.Map<String, String> body) {
+        workspaceService.transferOwnership(workspaceId, body.get("newOwnerId"));
+        return ResponseEntity.ok().build();
     }
 }

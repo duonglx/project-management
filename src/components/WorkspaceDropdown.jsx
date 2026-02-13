@@ -2,26 +2,26 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentWorkspaceId } from "../features/workspaceSlice";
+import { setActiveWorkspaceId } from "../features/auth-slice";
 import { useNavigate } from "react-router-dom";
 import { useGetWorkspacesQuery } from "../features/api-slice";
 
 function WorkspaceDropdown() {
-
-    const { currentUserId, currentWorkspace } = useSelector((state) => state.workspace);
-    const { data: workspaces = [] } = useGetWorkspacesQuery(currentUserId, { skip: !currentUserId });
+    const { currentWorkspace } = useSelector((state) => state.workspace);
+    const { data: workspaces = [] } = useGetWorkspacesQuery();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const onSelectWorkspace = (organizationId) => {
-        dispatch(setCurrentWorkspaceId(organizationId))
+    const onSelectWorkspace = (wsId) => {
+        dispatch(setCurrentWorkspaceId(wsId));
+        dispatch(setActiveWorkspaceId(wsId));
         setIsOpen(false);
-        navigate('/')
+        navigate(`/w/${wsId}/dashboard`);
     }
 
-    // Close dropdown on outside click
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

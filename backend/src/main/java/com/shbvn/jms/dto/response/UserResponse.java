@@ -6,6 +6,8 @@ public record UserResponse(
     String id,
     String name,
     String email,
+    String username,
+    String systemRole,
     String image,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
