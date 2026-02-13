@@ -1,0 +1,333 @@
+# React Patterns & Best Practices
+
+## Component Standards
+
+### Component Structure
+
+**Functional Components with Hooks:**
+```javascript
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { SomeIcon } from 'lucide-react';
+
+export default function ComponentName({ prop1, prop2, onAction }) {
+  // 1. Hooks
+  const [localState, setLocalState] = useState(initialValue);
+  const reduxState = useSelector(state => state.feature.data);
+  const dispatch = useDispatch();
+
+  // 2. Effects
+  useEffect(() => {
+    // Side effects
+  }, [dependencies]);
+
+  // 3. Event Handlers
+  const handleClick = () => {
+    // Handler logic
+  };
+
+  // 4. Derived State / Computations
+  const derivedValue = computeSomething(localState);
+
+  // 5. Early Returns (if needed)
+  if (!data) return <div>Loading...</div>;
+
+  // 6. Render
+  return (
+    <div className="container">
+      {/* JSX content */}
+    </div>
+  );
+}
+```
+
+### Component Patterns
+
+**1. Export Pattern:**
+- **Default export** for single component per file (current pattern)
+- Named exports for multiple related utilities
+
+**2. Props Handling:**
+- Destructure props in function signature
+- Provide default values for optional props
+- Use prop spreading sparingly (explicit props preferred)
+
+**3. State Management:**
+- Use `useState` for local component state
+- Use Redux for shared/global state
+- Lift state up when needed by multiple components
+
+**4. Event Handlers:**
+- Prefix with `handle` (e.g., `handleClick`, `handleSubmit`)
+- Define inline for simple cases, separate function for complex logic
+- Pass callbacks to child components (e.g., `onClose`, `onCreate`)
+
+**5. Conditional Rendering:**
+- Early returns for loading/error states
+- Ternary operators for simple conditionals
+- `&&` operator for conditional display
+- Extract complex conditionals to variables
+
+## Hooks Usage
+
+### useState
+
+```javascript
+// Simple state
+const [isOpen, setIsOpen] = useState(false);
+
+// Object state
+const [form, setForm] = useState({ name: '', email: '' });
+
+// Array state
+const [items, setItems] = useState([]);
+
+// Lazy initialization for expensive computations
+const [data, setData] = useState(() => computeInitialValue());
+```
+
+### useEffect
+
+```javascript
+// Run once on mount
+useEffect(() => {
+  fetchData();
+}, []);
+
+// Run when dependency changes
+useEffect(() => {
+  updateData(someValue);
+}, [someValue]);
+
+// Cleanup function
+useEffect(() => {
+  const timer = setTimeout(() => {}, 1000);
+  return () => clearTimeout(timer);
+}, []);
+```
+
+### useSelector (Redux)
+
+```javascript
+// Select slice of state
+const workspace = useSelector(state => state.workspace.currentWorkspace);
+
+// Select derived state
+const projectCount = useSelector(state =>
+  state.workspace.currentWorkspace?.projects?.length || 0
+);
+
+// Multiple selectors
+const projects = useSelector(state => state.workspace.currentWorkspace?.projects);
+const tasks = useSelector(state => /* ... */);
+```
+
+### useDispatch (Redux)
+
+```javascript
+const dispatch = useDispatch();
+
+const handleCreate = () => {
+  dispatch(addProject({ id: Date.now(), name: 'New Project' }));
+};
+```
+
+### useNavigate (React Router)
+
+```javascript
+const navigate = useNavigate();
+
+const handleClick = () => {
+  navigate('/projects');
+  // or
+  navigate(-1); // Go back
+};
+```
+
+### useParams (React Router)
+
+```javascript
+const { projectId, taskId } = useParams();
+const project = projects.find(p => p.id === projectId);
+```
+
+## Performance Optimization
+
+### Avoid Unnecessary Re-renders
+
+```javascript
+// Use React.memo for pure components (future)
+const MemoizedComponent = React.memo(Component);
+
+// Use useMemo for expensive computations
+const filteredTasks = useMemo(() => {
+  return tasks.filter(task => task.status === 'TODO');
+}, [tasks]);
+
+// Use useCallback for stable function references
+const handleClick = useCallback(() => {
+  doSomething(value);
+}, [value]);
+```
+
+### Code Splitting
+
+```javascript
+// Lazy load routes (future)
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+<Suspense fallback={<Loading />}>
+  <Dashboard />
+</Suspense>
+```
+
+### List Rendering
+
+```javascript
+// Always use keys for lists
+{items.map(item => (
+  <Item key={item.id} data={item} />
+))}
+
+// Avoid index as key (unless list is static)
+```
+
+## Error Handling
+
+### Component Error Boundaries (Future)
+
+```javascript
+// Wrap components with error boundaries
+<ErrorBoundary>
+  <ComponentThatMightError />
+</ErrorBoundary>
+```
+
+### Async Error Handling
+
+```javascript
+// Use try-catch for async operations (future API calls)
+try {
+  const data = await fetchData();
+  setData(data);
+} catch (error) {
+  setError(error.message);
+  toast.error('Failed to load data');
+}
+```
+
+### Conditional Rendering
+
+```javascript
+// Handle loading and error states
+if (loading) return <LoadingSpinner />;
+if (error) return <ErrorMessage message={error} />;
+if (!data) return <EmptyState />;
+
+return <DataDisplay data={data} />;
+```
+
+## Routing Standards
+
+### Route Configuration
+
+**src/App.jsx:**
+```javascript
+import { Routes, Route } from 'react-router-dom';
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="projects" element={<Projects />} />
+        <Route path="projectsDetail" element={<ProjectDetails />} />
+        <Route path="team" element={<Team />} />
+        <Route path="taskDetails" element={<TaskDetails />} />
+      </Route>
+    </Routes>
+  );
+}
+```
+
+### Navigation Patterns
+
+**1. Declarative Navigation:**
+```jsx
+import { Link } from 'react-router-dom';
+
+<Link to="/projects">Go to Projects</Link>
+<Link to={`/project/${id}`}>View Project</Link>
+```
+
+**2. Programmatic Navigation:**
+```javascript
+import { useNavigate } from 'react-router-dom';
+
+const navigate = useNavigate();
+navigate('/dashboard');
+navigate(-1); // Go back
+```
+
+**3. URL Parameters:**
+```javascript
+// Define route with param
+<Route path="project/:projectId" element={<ProjectDetails />} />
+
+// Access in component
+const { projectId } = useParams();
+```
+
+**4. Query Parameters:**
+```javascript
+// Set query params
+navigate('/projects?filter=active&sort=name');
+
+// Read query params
+const [searchParams] = useSearchParams();
+const filter = searchParams.get('filter');
+```
+
+## Performance Standards
+
+### Build Performance
+
+**Target Metrics:**
+- Development server start: < 1 second
+- HMR update: < 100ms
+- Production build: < 30 seconds
+- Bundle size (gzipped): < 500KB
+
+### Runtime Performance
+
+**Target Metrics (Lighthouse):**
+- Performance: > 90
+- Accessibility: > 90
+- Best Practices: > 90
+- SEO: > 90
+
+**Core Web Vitals:**
+- LCP (Largest Contentful Paint): < 2.5s
+- FID (First Input Delay): < 100ms
+- CLS (Cumulative Layout Shift): < 0.1
+
+### Optimization Techniques
+
+1. **Code Splitting:** Lazy load routes and heavy components
+2. **Asset Optimization:** Compress images, use WebP format
+3. **Tree Shaking:** Vite automatically removes unused code
+4. **Memoization:** Use React.memo, useMemo, useCallback
+5. **Virtualization:** For long lists (future implementation)
+
+## Component Documentation
+
+**Add brief descriptions to complex components:**
+```javascript
+/**
+ * ProjectTasks component displays a filterable, searchable task list
+ * with CRUD operations. Supports filtering by status, priority, assignee, and type.
+ */
+export default function ProjectTasks({ projectId }) {
+  // Implementation
+}
+```
