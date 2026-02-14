@@ -250,6 +250,54 @@ GET /api/auth/me?workspaceId={id}
   Description: Get current user + permissions in workspace
   Response: { user: {...}, permissions: ["workspace:view", "project:create", ...] }
   Requires: Authenticated
+
+POST /api/workspaces/{wId}/labels
+  Description: Create a workspace label
+  Request: { name: "Bug", color: "#ef4444", description: "..." }
+  Response: { id: "...", name: "Bug", color: "#ef4444", ... }
+  Requires: workspace:admin permission
+  Max: 50 labels per workspace
+
+GET /api/workspaces/{wId}/labels
+  Description: List all workspace labels
+  Response: [{ id: "...", name: "Bug", color: "#ef4444", ... }]
+  Requires: workspace:view permission
+
+PUT /api/workspaces/{wId}/labels/{lId}
+  Description: Update a label
+  Request: { name: "Critical Bug", color: "#ff0000" }
+  Response: { id: "...", name: "Critical Bug", color: "#ff0000", ... }
+  Requires: workspace:admin permission
+
+DELETE /api/workspaces/{wId}/labels/{lId}
+  Description: Delete a label (removes from all tasks)
+  Requires: workspace:admin permission
+
+POST /api/workspaces/{wId}/task-statuses
+  Description: Create custom task status
+  Request: { name: "In Review", category: "ACTIVE", color: "#8b5cf6" }
+  Response: { id: "...", name: "In Review", slug: "in-review", ... }
+  Requires: workspace:admin permission
+
+GET /api/workspaces/{wId}/task-statuses
+  Description: List workspace statuses
+  Response: [{ id: "...", name: "Todo", slug: "todo", category: "NOT_STARTED", ... }]
+  Requires: workspace:view permission
+
+PUT /api/workspaces/{wId}/task-statuses/{sId}
+  Description: Update status
+  Request: { name: "Code Review", color: "#8b5cf6" }
+  Response: { id: "...", name: "Code Review", ... }
+  Requires: workspace:admin permission
+
+DELETE /api/workspaces/{wId}/task-statuses/{sId}
+  Description: Delete status (reassigns tasks to default)
+  Requires: workspace:admin permission
+
+PUT /api/workspaces/{wId}/task-statuses/reorder
+  Description: Reorder task statuses
+  Request: { statusIds: ["id1", "id2", "id3"] }
+  Requires: workspace:admin permission
 ```
 
 ### Caching Strategy
@@ -332,7 +380,13 @@ if (hasAll(['workspace:admin', 'audit:view'])) {
 - projects
 - project_members
 - tasks
+- task_statuses
+- labels
+- task_labels
 - comments
+- permissions
+- role_permissions
+- refresh_tokens
 
 **Indexes:**
 ```sql
@@ -350,8 +404,18 @@ CREATE INDEX idx_projects_status ON projects(status);
 -- Tasks
 CREATE INDEX idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_status_id ON tasks(status_id);
 CREATE INDEX idx_tasks_due_date ON tasks(due_date);
+
+-- Task Statuses
+CREATE INDEX idx_task_statuses_workspace_id ON task_statuses(workspace_id);
+
+-- Labels
+CREATE INDEX idx_labels_workspace_id ON labels(workspace_id);
+
+-- Task Labels
+CREATE INDEX idx_task_labels_task_id ON task_labels(task_id);
+CREATE INDEX idx_task_labels_label_id ON task_labels(label_id);
 
 -- Comments
 CREATE INDEX idx_comments_task_id ON comments(task_id);

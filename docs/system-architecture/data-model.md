@@ -43,9 +43,17 @@ User
   │                          │     │
   │                          │     ├─► Task
   │                          │     │     │
+  │                          │     │     ├─► TaskStatus
+  │                          │     │     ├─► TaskLabel ──► Label
   │                          │     │     └─► Comment
   │                          │     │
   │                          │     └─► ProjectMember ──► User
+  │                          │
+  │                          ├─► Label
+  │                          │     └─► TaskLabel ──► Task
+  │                          │
+  │                          ├─► TaskStatus
+  │                          │     └─► Task
   │                          │
   │                          └─► WorkspaceMember (other users)
   │
@@ -109,7 +117,7 @@ User
 - id (String, UUID)
 - title (String)
 - description (String, optional)
-- status (TaskStatus: TODO | IN_PROGRESS | DONE)
+- statusId (String, references TaskStatus)
 - type (TaskType: TASK | BUG | FEATURE | IMPROVEMENT | OTHER)
 - priority (Priority: LOW | MEDIUM | HIGH)
 - assigneeId (String, references User, optional)
@@ -117,7 +125,35 @@ User
 - projectId (String, references Project)
 - createdAt (DateTime)
 - updatedAt (DateTime)
-- Relations: project, assignee (User), comments
+- Relations: project, assignee (User), status (TaskStatus), labels (Label), comments
+
+**TaskStatus:** (Workspace-level custom statuses)
+- id (String, UUID)
+- workspaceId (String, references Workspace)
+- name (String)
+- slug (String)
+- color (String, hex color)
+- category (StatusCategory: NOT_STARTED | ACTIVE | DONE | CLOSED)
+- position (Integer, for ordering)
+- isDefault (Boolean)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+- Relations: workspace, tasks
+
+**Label:** (Workspace-level labels for tasks)
+- id (String, UUID)
+- workspaceId (String, references Workspace)
+- name (String)
+- color (String, hex color)
+- description (String, optional)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+- Relations: workspace, tasks (via TaskLabel)
+
+**TaskLabel:** (Junction table for task-label relationships)
+- taskId (String, references Task)
+- labelId (String, references Label)
+- Relations: task, label
 
 **Comment:**
 - id (String, UUID)
@@ -211,6 +247,23 @@ GET    /api/tasks/:taskId/comments        # List comments
 POST   /api/tasks/:taskId/comments        # Add comment
 PUT    /api/comments/:id                  # Update comment
 DELETE /api/comments/:id                  # Delete comment
+```
+
+**Labels:**
+```
+GET    /api/workspaces/:wsId/labels       # List workspace labels
+POST   /api/workspaces/:wsId/labels       # Create label
+PUT    /api/workspaces/:wsId/labels/:id   # Update label
+DELETE /api/workspaces/:wsId/labels/:id   # Delete label
+```
+
+**Task Statuses:**
+```
+GET    /api/workspaces/:wsId/task-statuses        # List workspace statuses
+POST   /api/workspaces/:wsId/task-statuses        # Create status
+PUT    /api/workspaces/:wsId/task-statuses/:id    # Update status
+DELETE /api/workspaces/:wsId/task-statuses/:id    # Delete status
+PUT    /api/workspaces/:wsId/task-statuses/reorder # Reorder statuses
 ```
 
 **Users:**

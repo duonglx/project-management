@@ -107,6 +107,32 @@ App (Route Definitions)
         │   ├── InviteMemberDialog
         │   └── AddProjectMember
         │
+        ├── Settings Pages (Admin-Only)
+        │   ├── SettingsLayout (Sidebar + Content Area)
+        │   │
+        │   ├── GeneralSettingsPage
+        │   │   ├── Workspace Name/Description Editor
+        │   │   ├── Image Upload
+        │   │   ├── Timezone Selection
+        │   │   └── Language Selection
+        │   │
+        │   ├── LabelsSettingsPage
+        │   │   ├── Labels List (max 50)
+        │   │   ├── Create Label Form
+        │   │   ├── ColorPresetPicker
+        │   │   └── Edit/Delete Actions
+        │   │
+        │   ├── StatusesSettingsPage
+        │   │   ├── Custom Statuses List
+        │   │   ├── Drag-to-Reorder Interface
+        │   │   ├── Create Status Form
+        │   │   ├── Status Categories (NOT_STARTED, ACTIVE, DONE, CLOSED)
+        │   │   └── Edit/Delete Actions
+        │   │
+        │   └── DangerZonePage
+        │       ├── Transfer Ownership Form
+        │       └── Delete Workspace Confirmation
+        │
         └── TaskDetails Page
             ├── Task Information Display
             └── Action Buttons (Edit/Delete)

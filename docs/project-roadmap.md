@@ -2,18 +2,18 @@
 
 ## Current Status
 
-**Version:** 0.0.0
-**Phase:** Frontend Prototype (Complete)
+**Version:** 0.2.0
+**Phase:** Backend API with RBAC + Workspace Settings Hub
 **Status:** Active Development
-**Last Updated:** February 13, 2026
+**Last Updated:** February 14, 2026
 
 ## Roadmap Overview
 
 The project is progressing through distinct development phases, from frontend prototype to production-ready full-stack application with real-time collaboration features.
 
 ```
-Phase 0: Frontend Prototype ████████████████████ 100% (COMPLETE)
-Phase 1: Backend Foundation ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
+Phase 0: Frontend Prototype  ████████████████████ 100% (COMPLETE)
+Phase 1: Backend + Settings ████████████████░░░░  80% (IN PROGRESS)
 Phase 2: Authentication     ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
 Phase 3: Real-Time Features ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
 Phase 4: Advanced Features  ░░░░░░░░░░░░░░░░░░░░   0% (FUTURE)
@@ -116,46 +116,60 @@ Phase 5: Production Launch  ░░░░░░░░░░░░░░░░░�
 
 ---
 
-## Phase 1: Backend Foundation 🔜 NEXT
+## Phase 1: Backend Foundation + Workspace Settings 🔧 IN PROGRESS
 
-**Duration:** 6-8 weeks (Estimated)
-**Status:** Planning
+**Duration:** Ongoing (Started: January 2026)
+**Status:** Active Development (80% Complete)
 **Priority:** High
-**Start Date:** TBD
-**Target Completion:** TBD
+**Start Date:** January 2026
+**Target Completion:** February 28, 2026
 
 ### Objectives
 
-1. Build REST API with Node.js backend
-2. Integrate PostgreSQL database with Prisma ORM
+1. Build REST API with Spring Boot backend (Node.js changed to Java/Spring)
+2. Integrate PostgreSQL database with JPA/Hibernate ORM
 3. Implement API endpoints for all CRUD operations
-4. Replace frontend dummy data with API calls
-5. Establish development and deployment workflows
+4. Workspace Settings Hub with centralized configuration
+5. Custom Task Statuses and Labels (workspace-level)
+6. Role-Based Access Control (RBAC) system
+7. JWT Authentication with refresh token rotation
+8. Establish development and deployment workflows
 
-### Planned Deliverables
+### Completed Deliverables ✅
 
 **Backend Infrastructure:**
-- [ ] Node.js server setup (Express or Fastify)
-- [ ] PostgreSQL database provisioning
-- [ ] Prisma ORM configuration and migrations
-- [ ] Environment configuration (.env management)
-- [ ] Error handling and logging middleware
-- [ ] API documentation (Swagger/OpenAPI)
+- [x] Spring Boot server setup (Java 17+, Spring Boot 3.x)
+- [x] PostgreSQL database provisioning (with migrations)
+- [x] JPA/Hibernate ORM configuration
+- [x] Environment configuration (.env management)
+- [x] Error handling and logging middleware
+- [x] JWT-based authentication system
 
 **Database:**
-- [ ] Implement Prisma schema (based on schema.prisma)
-- [ ] Create database migrations
-- [ ] Seed database with initial data
-- [ ] Set up database indexes for performance
-- [ ] Configure connection pooling
+- [x] Core schema (users, workspaces, projects, tasks, comments)
+- [x] Authentication schema (refresh_tokens, permissions, role_permissions)
+- [x] Workspace settings schema (labels, task_statuses)
+- [x] Database migrations (Flyway)
+- [x] Seed data for testing
+- [x] Database indexes for performance
 
 **API Endpoints:**
-- [ ] Workspace endpoints (GET, POST, PUT, DELETE)
-- [ ] Project endpoints (GET, POST, PUT, DELETE)
-- [ ] Task endpoints (GET, POST, PUT, DELETE)
-- [ ] User endpoints (GET, PUT)
-- [ ] Member management endpoints
-- [ ] Comment endpoints (future)
+- [x] Workspace endpoints (GET, POST, PUT, DELETE)
+- [x] Project endpoints (GET, POST, PUT, DELETE)
+- [x] Task endpoints (GET, POST, PUT, DELETE)
+- [x] User endpoints (GET, PUT)
+- [x] Member management endpoints
+- [x] Label CRUD endpoints
+- [x] Task Status CRUD + Reorder endpoints
+- [x] Comment endpoints (basic)
+
+### Remaining Deliverables
+
+**Frontend Integration:**
+- [ ] Full API integration for existing pages
+- [ ] Loading states and error handling
+- [ ] Optimistic UI updates
+- [ ] API client service layer
 
 **Frontend Integration:**
 - [ ] Create API client service (axios/fetch wrapper)
@@ -699,25 +713,55 @@ Features will be prioritized based on:
 
 ## Version History
 
-### v0.0.0 (Current)
+### v0.0.0 (Complete - Phase 0)
 - Frontend prototype complete
 - Dummy data-driven SPA
 - All core UI components implemented
 - Dark mode support
 - Responsive design
 
-### v0.1.0 (Planned - Phase 1)
-- Backend API integration
-- PostgreSQL database
-- Data persistence
-- API authentication
+### v0.1.0 (Archived)
+- Originally planned for backend API integration
 
-### v0.2.0 (Planned - Phase 2)
-- User authentication
-- OAuth providers
-- Role-based access control
+### v0.2.0 (Current - Phase 1, 80% Complete)
+**Released:** February 14, 2026
 
-### v0.3.0 (Planned - Phase 3)
+**Major Features:**
+- Spring Boot backend with Java 17+
+- PostgreSQL database with Flyway migrations
+- REST API for all CRUD operations
+- JWT-based authentication with refresh tokens
+- Role-Based Access Control (RBAC) with permission system
+- Workspace Settings Hub
+- Custom Task Statuses (workspace-level, 4 categories)
+- Workspace Labels (up to 50 per workspace)
+- Label assignment to tasks
+- Status reordering interface
+- General Settings (workspace name, description, image, timezone, language)
+- Danger Zone (transfer ownership, delete workspace)
+
+**Database Schema:**
+- 8 Flyway migrations (V1-V8)
+- New tables: task_statuses, labels, task_labels, permission, role_permission, refresh_tokens
+- Task status migrated from enum to FK relationship
+- Full indexing for performance
+
+**Security:**
+- HS512 signed JWT tokens
+- httpOnly cookies (XSS protection)
+- Token rotation on refresh
+- Password hashing (bcrypt)
+- Admin-only settings endpoints
+
+**Next:** Frontend API integration, more endpoint implementation
+
+### v0.3.0 (Planned - Phase 2)
+- Full frontend API integration
+- Comment system
+- Advanced task filtering
+- OAuth providers (Google, GitHub)
+
+### v0.4.0 (Planned - Phase 3)
 - Real-time collaboration
 - WebSocket integration
 - Live notifications

@@ -23,9 +23,13 @@ project-management/
 │   │   ├── assets.js           # Mock data
 │   │   ├── schema.prisma       # Prisma schema reference
 │   │   └── images/             # SVG/PNG assets
-│   ├── components/             # Reusable UI components (20+ files, ~2400 LOC)
+│   ├── components/             # Reusable UI components (25+ files, ~2800 LOC)
 │   │   ├── ProtectedRoute.jsx  # JWT authentication wrapper
 │   │   ├── PermissionGate.jsx  # Permission-based component gating
+│   │   ├── settings-layout.jsx # Settings sidebar layout
+│   │   ├── settings/           # Settings-specific components
+│   │   │   └── color-preset-picker.jsx  # Color selection component
+│   │   ├── role-tab-bar.jsx    # Settings navigation tabs
 │   │   └── ...                 # Other UI components
 │   ├── features/               # Redux slices for state management
 │   │   ├── auth-slice.js       # Auth state (login, logout, permissions)
@@ -37,9 +41,14 @@ project-management/
 │   ├── services/               # API client services
 │   │   ├── auth-api.js         # Auth endpoints
 │   │   └── api-client.js       # HTTP client with JWT handling
-│   ├── pages/                  # Route pages (7 files)
+│   ├── pages/                  # Route pages (10+ files)
 │   │   ├── LoginPage.jsx       # Login form page
 │   │   ├── Dashboard.jsx       # Main dashboard
+│   │   ├── settings/           # Workspace settings pages
+│   │   │   ├── general-settings-page.jsx
+│   │   │   ├── labels-settings-page.jsx
+│   │   │   ├── statuses-settings-page.jsx
+│   │   │   └── danger-zone-page.jsx
 │   │   └── ...                 # Other pages
 │   └── utils/                  # Utility functions
 ├── backend/                    # Spring Boot Java backend
@@ -49,6 +58,8 @@ project-management/
 │   │   │   ├── WorkspaceController.java  # Workspace CRUD
 │   │   │   ├── ProjectController.java    # Project CRUD
 │   │   │   ├── TaskController.java       # Task CRUD
+│   │   │   ├── LabelController.java      # Workspace labels CRUD
+│   │   │   ├── TaskStatusController.java # Custom task statuses CRUD + reorder
 │   │   │   ├── RolePermissionController.java  # Permission management
 │   │   │   └── AdminController.java      # Admin endpoints
 │   │   ├── service/            # Business logic
@@ -56,6 +67,9 @@ project-management/
 │   │   │   ├── PermissionService.java    # RBAC permission checks
 │   │   │   ├── WorkspaceService.java     # Workspace operations
 │   │   │   ├── ProjectService.java       # Project operations
+│   │   │   ├── TaskService.java          # Task operations
+│   │   │   ├── LabelService.java         # Label management
+│   │   │   ├── TaskStatusService.java    # Status management
 │   │   │   └── UserService.java          # User management
 │   │   ├── security/           # Spring Security implementation
 │   │   │   ├── JwtService.java           # JWT token creation & parsing
@@ -73,15 +87,24 @@ project-management/
 │   │   │   ├── Project.java
 │   │   │   ├── ProjectMember.java
 │   │   │   ├── Task.java
+│   │   │   ├── TaskStatus.java           # Custom task statuses
+│   │   │   ├── Label.java                # Workspace labels
+│   │   │   ├── TaskLabel.java            # Task-Label junction
 │   │   │   ├── Permission.java           # Permission entity
 │   │   │   ├── RolePermission.java       # Role-to-Permission mapping
-│   │   │   └── RefreshToken.java         # Refresh token storage
+│   │   │   ├── RefreshToken.java         # Refresh token storage
+│   │   │   └── Comment.java              # Task comments
 │   │   ├── repository/         # Database access layer
 │   │   │   ├── UserRepository.java
 │   │   │   ├── WorkspaceMemberRepository.java
+│   │   │   ├── ProjectRepository.java
+│   │   │   ├── TaskRepository.java
+│   │   │   ├── LabelRepository.java      # Label queries
+│   │   │   ├── TaskStatusRepository.java # Status queries
 │   │   │   ├── PermissionRepository.java
 │   │   │   ├── RolePermissionRepository.java
-│   │   │   └── RefreshTokenRepository.java
+│   │   │   ├── RefreshTokenRepository.java
+│   │   │   └── CommentRepository.java
 │   │   ├── dto/                # Data transfer objects
 │   │   │   ├── request/        # Request DTOs
 │   │   │   │   ├── LoginRequest.java
