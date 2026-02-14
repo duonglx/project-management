@@ -3,7 +3,7 @@ import { NavLink, useParams } from 'react-router-dom'
 import MyTasksSidebar from './MyTasksSidebar'
 import ProjectSidebar from './ProjectsSidebar'
 import WorkspaceDropdown from './WorkspaceDropdown'
-import { FolderOpenIcon, LayoutDashboardIcon, SettingsIcon, UsersIcon, ShieldIcon, UserCogIcon } from 'lucide-react'
+import { FolderOpenIcon, LayoutDashboardIcon, UsersIcon, SettingsIcon } from 'lucide-react'
 import PermissionGate from './PermissionGate'
 import { useSelector } from 'react-redux'
 
@@ -44,16 +44,11 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                                 <p className='text-sm truncate'>{item.name}</p>
                             </NavLink>
                         ))}
-                        <PermissionGate permission="workspace:manage_settings">
-                            <NavLink to={`${prefix}/settings/roles`} className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
-                                <ShieldIcon size={16} />
-                                <p className='text-sm truncate'>Roles & Permissions</p>
-                            </NavLink>
-                        </PermissionGate>
+                        {/* Settings link - admin-only */}
                         {isSystemAdmin && (
-                            <NavLink to={`${prefix}/admin/users`} className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
-                                <UserCogIcon size={16} />
-                                <p className='text-sm truncate'>Admin Users</p>
+                            <NavLink to={`${prefix}/settings`} className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
+                                <SettingsIcon size={16} />
+                                <p className='text-sm truncate'>Settings</p>
                             </NavLink>
                         )}
                     </div>

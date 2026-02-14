@@ -12,6 +12,11 @@ import LoginPage from "./pages/LoginPage";
 import RoleManagement from "./pages/RoleManagement";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SettingsLayout from "./components/settings-layout";
+import GeneralSettingsPage from "./pages/settings/general-settings-page";
+import LabelsSettingsPage from "./pages/settings/labels-settings-page";
+import StatusesSettingsPage from "./pages/settings/statuses-settings-page";
+import DangerZonePage from "./pages/settings/danger-zone-page";
 import { selectActiveWorkspaceId, selectIsAuthenticated, setActiveWorkspaceId } from "./features/auth-slice";
 import { Loader2Icon } from "lucide-react";
 import { useGetWorkspacesQuery } from "./features/api-slice";
@@ -81,8 +86,17 @@ const App = () => {
                         <Route path="projects" element={<Projects />} />
                         <Route path="projects/:projectId" element={<ProjectDetails />} />
                         <Route path="projects/:projectId/tasks/:taskId" element={<TaskDetails />} />
-                        <Route path="settings/roles" element={<RoleManagement />} />
-                        <Route path="admin/users" element={<AdminUsersPage />} />
+                        <Route path="settings" element={<SettingsLayout />}>
+                            <Route index element={<Navigate to="general" replace />} />
+                            <Route path="general" element={<GeneralSettingsPage />} />
+                            <Route path="members" element={<div className="text-gray-500 dark:text-zinc-400">Members (Coming Soon)</div>} />
+                            <Route path="statuses" element={<StatusesSettingsPage />} />
+                            <Route path="labels" element={<LabelsSettingsPage />} />
+                            <Route path="custom-fields" element={<div className="text-gray-500 dark:text-zinc-400">Custom Fields (Coming Soon)</div>} />
+                            <Route path="roles" element={<RoleManagement />} />
+                            <Route path="admin-users" element={<AdminUsersPage />} />
+                            <Route path="danger-zone" element={<DangerZonePage />} />
+                        </Route>
                     </Route>
                     <Route path="/" element={<WorkspaceRedirect />} />
                 </Route>
