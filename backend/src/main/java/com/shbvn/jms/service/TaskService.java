@@ -35,10 +35,13 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", id));
 
-        // Trigger lazy loading for comments and assignee
+        // Trigger lazy loading for comments, assignee, and task status
         task.getComments().size();
         if (task.getAssigneeId() != null) {
             task.getAssignee().getName();
+        }
+        if (task.getTaskStatus() != null) {
+            task.getTaskStatus().getName();
         }
 
         return task;
@@ -64,8 +67,8 @@ public class TaskService {
         if (updates.getDescription() != null) {
             existing.setDescription(updates.getDescription());
         }
-        if (updates.getStatus() != null) {
-            existing.setStatus(updates.getStatus());
+        if (updates.getStatusId() != null) {
+            existing.setStatusId(updates.getStatusId());
         }
         if (updates.getType() != null) {
             existing.setType(updates.getType());
@@ -82,10 +85,13 @@ public class TaskService {
 
         Task saved = taskRepository.save(existing);
 
-        // Trigger lazy loading for comments and assignee
+        // Trigger lazy loading for comments, assignee, and task status
         saved.getComments().size();
         if (saved.getAssigneeId() != null) {
             saved.getAssignee().getName();
+        }
+        if (saved.getTaskStatus() != null) {
+            saved.getTaskStatus().getName();
         }
 
         return saved;

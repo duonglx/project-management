@@ -1,7 +1,6 @@
 package com.shbvn.jms.repository;
 
 import com.shbvn.jms.model.Task;
-import com.shbvn.jms.model.enums.TaskStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,5 +12,6 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, String> {
     Page<Task> findByProjectId(String projectId, Pageable pageable);
     List<Task> findByAssigneeId(String assigneeId);
-    List<Task> findByProjectIdAndStatus(String projectId, TaskStatus status);
+    List<Task> findByProjectIdAndStatusId(String projectId, String statusId);
+    long countByStatusId(String statusId);
 }

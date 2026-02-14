@@ -1,7 +1,6 @@
 package com.shbvn.jms.model;
 
 import com.shbvn.jms.model.enums.Priority;
-import com.shbvn.jms.model.enums.TaskStatus;
 import com.shbvn.jms.model.enums.TaskType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -39,9 +38,12 @@ public class Task {
     @Column(name = "description")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TaskStatus status;
+    @Column(name = "status_id", nullable = false, length = 36)
+    private String statusId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id", insertable = false, updatable = false)
+    private TaskStatusEntity taskStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)

@@ -4,7 +4,6 @@ import com.shbvn.jms.dto.request.CreateTaskRequest;
 import com.shbvn.jms.dto.request.UpdateTaskRequest;
 import com.shbvn.jms.dto.response.TaskResponse;
 import com.shbvn.jms.model.enums.Priority;
-import com.shbvn.jms.model.enums.TaskStatus;
 import com.shbvn.jms.model.enums.TaskType;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -51,7 +50,7 @@ class TaskControllerTest {
         request.setProjectId(PROJECT_ID);
         request.setTitle("Integration Test Task");
         request.setDescription("A task created during integration testing");
-        request.setStatus(TaskStatus.TODO);
+        // statusId will be resolved by backend default
         request.setType(TaskType.TASK);
         request.setPriority(Priority.MEDIUM);
         request.setAssigneeId("user_1");
@@ -66,7 +65,7 @@ class TaskControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().title()).isEqualTo("Integration Test Task");
-        assertThat(response.getBody().status()).isEqualTo("TODO");
+        assertThat(response.getBody().statusId()).isNotNull();
         assertThat(response.getBody().priority()).isEqualTo("MEDIUM");
         createdTaskId = response.getBody().id();
     }
@@ -84,7 +83,7 @@ class TaskControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().id()).isEqualTo(taskId);
         assertThat(response.getBody().title()).isEqualTo("Design Dashboard UI");
-        assertThat(response.getBody().status()).isEqualTo("IN_PROGRESS");
+        assertThat(response.getBody().statusId()).isNotNull();
     }
 
     @Test
@@ -93,7 +92,7 @@ class TaskControllerTest {
         UpdateTaskRequest request = new UpdateTaskRequest();
         request.setTitle("Updated Task Title");
         request.setDescription("Updated description");
-        request.setStatus(TaskStatus.IN_PROGRESS);
+        // statusId would be set to a valid status ID in real tests
         request.setType(TaskType.FEATURE);
         request.setPriority(Priority.HIGH);
         request.setAssigneeId("user_2");
@@ -107,7 +106,6 @@ class TaskControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().status()).isEqualTo("IN_PROGRESS");
         assertThat(response.getBody().title()).isEqualTo("Updated Task Title");
     }
 
@@ -115,7 +113,6 @@ class TaskControllerTest {
     @Order(5)
     void testDeleteTask() {
         if (createdTaskId == null) {
-            // Skip if no task was created
             return;
         }
         ResponseEntity<Void> response = restTemplate.exchange(

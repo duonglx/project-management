@@ -1,7 +1,6 @@
 package com.shbvn.jms.dto.request;
 
 import com.shbvn.jms.model.enums.Priority;
-import com.shbvn.jms.model.enums.TaskStatus;
 import com.shbvn.jms.model.enums.TaskType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,8 +23,7 @@ public class CreateTaskRequest {
 
     private String description;
 
-    @NotNull(message = "Status is required")
-    private TaskStatus status;
+    private String statusId;
 
     @NotNull(message = "Type is required")
     private TaskType type;

@@ -1,7 +1,6 @@
 package com.shbvn.jms.dto.request;
 
 import com.shbvn.jms.model.enums.Priority;
-import com.shbvn.jms.model.enums.TaskStatus;
 import com.shbvn.jms.model.enums.TaskType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +17,7 @@ public class UpdateTaskRequest {
 
     private String description;
 
-    private TaskStatus status;
+    private String statusId;
 
     private TaskType type;
 
