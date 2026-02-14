@@ -17,6 +17,8 @@ import GeneralSettingsPage from "./pages/settings/general-settings-page";
 import LabelsSettingsPage from "./pages/settings/labels-settings-page";
 import StatusesSettingsPage from "./pages/settings/statuses-settings-page";
 import DangerZonePage from "./pages/settings/danger-zone-page";
+import MembersSettingsPage from "./pages/settings/members-settings-page";
+import CustomFieldsSettingsPage from "./pages/settings/custom-fields-settings-page";
 import { selectActiveWorkspaceId, selectIsAuthenticated, setActiveWorkspaceId } from "./features/auth-slice";
 import { Loader2Icon } from "lucide-react";
 import { useGetWorkspacesQuery } from "./features/api-slice";
@@ -89,10 +91,10 @@ const App = () => {
                         <Route path="settings" element={<SettingsLayout />}>
                             <Route index element={<Navigate to="general" replace />} />
                             <Route path="general" element={<GeneralSettingsPage />} />
-                            <Route path="members" element={<div className="text-gray-500 dark:text-zinc-400">Members (Coming Soon)</div>} />
+                            <Route path="members" element={<MembersSettingsPage />} />
                             <Route path="statuses" element={<StatusesSettingsPage />} />
                             <Route path="labels" element={<LabelsSettingsPage />} />
-                            <Route path="custom-fields" element={<div className="text-gray-500 dark:text-zinc-400">Custom Fields (Coming Soon)</div>} />
+                            <Route path="custom-fields" element={<CustomFieldsSettingsPage />} />
                             <Route path="roles" element={<RoleManagement />} />
                             <Route path="admin-users" element={<AdminUsersPage />} />
                             <Route path="danger-zone" element={<DangerZonePage />} />

@@ -24,7 +24,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Workspace', 'Project', 'Task', 'Comment', 'User', 'RolePermission', 'AdminUser', 'Label', 'TaskStatus'],
+  tagTypes: ['Workspace', 'Project', 'Task', 'Comment', 'User', 'RolePermission', 'AdminUser', 'Label', 'TaskStatus', 'CustomField'],
   endpoints: (builder) => ({
     // Users
     getUsers: builder.query({
@@ -251,6 +251,21 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Workspace'],
     }),
+    updateMemberRole: builder.mutation({
+      query: ({ workspaceId, userId, role }) => ({
+        url: `/workspaces/${workspaceId}/members/${userId}`,
+        method: 'PUT',
+        body: { role },
+      }),
+      invalidatesTags: ['Workspace'],
+    }),
+    removeWorkspaceMember: builder.mutation({
+      query: ({ workspaceId, userId }) => ({
+        url: `/workspaces/${workspaceId}/members/${userId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Workspace'],
+    }),
     addProjectMember: builder.mutation({
       query: ({ workspaceId, projectId, ...body }) => ({
         url: `/workspaces/${workspaceId}/projects/${projectId}/members`,
@@ -258,6 +273,55 @@ export const apiSlice = createApi({
         body,
       }),
       invalidatesTags: ['Workspace', 'Project'],
+    }),
+
+    // Custom Fields
+    getCustomFields: builder.query({
+      query: (workspaceId) => `/workspaces/${workspaceId}/custom-fields`,
+      providesTags: ['CustomField'],
+    }),
+    createCustomField: builder.mutation({
+      query: ({ workspaceId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/custom-fields`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['CustomField'],
+    }),
+    updateCustomField: builder.mutation({
+      query: ({ workspaceId, fieldId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/custom-fields/${fieldId}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['CustomField'],
+    }),
+    deleteCustomField: builder.mutation({
+      query: ({ workspaceId, fieldId }) => ({
+        url: `/workspaces/${workspaceId}/custom-fields/${fieldId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['CustomField'],
+    }),
+    reorderCustomFields: builder.mutation({
+      query: ({ workspaceId, items }) => ({
+        url: `/workspaces/${workspaceId}/custom-fields/reorder`,
+        method: 'PUT',
+        body: { items },
+      }),
+      invalidatesTags: ['CustomField'],
+    }),
+    getTaskCustomFieldValues: builder.query({
+      query: (taskId) => `/tasks/${taskId}/custom-fields`,
+      providesTags: ['CustomField'],
+    }),
+    updateTaskCustomFieldValues: builder.mutation({
+      query: ({ taskId, values }) => ({
+        url: `/tasks/${taskId}/custom-fields`,
+        method: 'PUT',
+        body: values,
+      }),
+      invalidatesTags: ['CustomField', 'Task'],
     }),
   }),
 });
@@ -296,4 +360,13 @@ export const {
   useDeleteAdminUserMutation,
   useTransferOwnershipMutation,
   useDeleteWorkspaceMutation,
+  useUpdateMemberRoleMutation,
+  useRemoveWorkspaceMemberMutation,
+  useGetCustomFieldsQuery,
+  useCreateCustomFieldMutation,
+  useUpdateCustomFieldMutation,
+  useDeleteCustomFieldMutation,
+  useReorderCustomFieldsMutation,
+  useGetTaskCustomFieldValuesQuery,
+  useUpdateTaskCustomFieldValuesMutation,
 } = apiSlice;
