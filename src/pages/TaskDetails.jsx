@@ -115,8 +115,9 @@ const TaskDetails = () => {
                     <div className="mb-3">
                         <h1 className="text-lg font-medium text-gray-900 dark:text-zinc-100">{task.title}</h1>
                         <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-300 text-xs">
-                                {task.status}
+                            <span className="px-2 py-0.5 rounded text-xs text-white"
+                                style={{ backgroundColor: task.taskStatus?.color || '#6b7280' }}>
+                                {task.taskStatus?.name || 'Unknown'}
                             </span>
                             <span className="px-2 py-0.5 rounded bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-300 text-xs">
                                 {task.type}

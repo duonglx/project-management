@@ -16,8 +16,8 @@ export default function TasksSummary() {
     }, [currentWorkspace]);
 
     const myTasks = tasks.filter(i => i.assignee?.id === user.id);
-    const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'DONE');
-    const inProgressIssues = tasks.filter(i => i.status === 'IN_PROGRESS');
+    const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.taskStatus?.category !== 'DONE');
+    const inProgressIssues = tasks.filter(i => i.taskStatus?.category === 'ACTIVE');
 
     const summaryCards = [
         {

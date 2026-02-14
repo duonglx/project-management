@@ -24,7 +24,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Workspace', 'Project', 'Task', 'Comment', 'User', 'RolePermission', 'AdminUser'],
+  tagTypes: ['Workspace', 'Project', 'Task', 'Comment', 'User', 'RolePermission', 'AdminUser', 'Label', 'TaskStatus'],
   endpoints: (builder) => ({
     // Users
     getUsers: builder.query({
@@ -45,6 +45,14 @@ export const apiSlice = createApi({
     }),
     createWorkspace: builder.mutation({
       query: (body) => ({ url: '/workspaces', method: 'POST', body }),
+      invalidatesTags: ['Workspace'],
+    }),
+    updateWorkspace: builder.mutation({
+      query: ({ workspaceId, ...body }) => ({
+        url: `/workspaces/${workspaceId}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['Workspace'],
     }),
     getWorkspaceMembers: builder.query({
@@ -151,6 +159,89 @@ export const apiSlice = createApi({
       invalidatesTags: ['AdminUser', 'User'],
     }),
 
+    // Task Statuses
+    getTaskStatuses: builder.query({
+      query: (workspaceId) => `/workspaces/${workspaceId}/task-statuses`,
+      providesTags: ['TaskStatus'],
+    }),
+    createTaskStatus: builder.mutation({
+      query: ({ workspaceId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/task-statuses`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['TaskStatus'],
+    }),
+    updateTaskStatus: builder.mutation({
+      query: ({ workspaceId, statusId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/task-statuses/${statusId}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['TaskStatus'],
+    }),
+    deleteTaskStatus: builder.mutation({
+      query: ({ workspaceId, statusId }) => ({
+        url: `/workspaces/${workspaceId}/task-statuses/${statusId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['TaskStatus'],
+    }),
+    reorderTaskStatuses: builder.mutation({
+      query: ({ workspaceId, items }) => ({
+        url: `/workspaces/${workspaceId}/task-statuses/reorder`,
+        method: 'PUT',
+        body: { items },
+      }),
+      invalidatesTags: ['TaskStatus'],
+    }),
+
+    // Labels
+    getLabels: builder.query({
+      query: (workspaceId) => `/workspaces/${workspaceId}/labels`,
+      providesTags: ['Label'],
+    }),
+    createLabel: builder.mutation({
+      query: ({ workspaceId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/labels`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Label'],
+    }),
+    updateLabel: builder.mutation({
+      query: ({ workspaceId, labelId, ...body }) => ({
+        url: `/workspaces/${workspaceId}/labels/${labelId}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Label'],
+    }),
+    deleteLabel: builder.mutation({
+      query: ({ workspaceId, labelId }) => ({
+        url: `/workspaces/${workspaceId}/labels/${labelId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Label'],
+    }),
+
+    // Workspace Actions
+    transferOwnership: builder.mutation({
+      query: ({ workspaceId, newOwnerId }) => ({
+        url: `/workspaces/${workspaceId}/transfer-ownership`,
+        method: 'PUT',
+        body: { newOwnerId },
+      }),
+      invalidatesTags: ['Workspace'],
+    }),
+    deleteWorkspace: builder.mutation({
+      query: (workspaceId) => ({
+        url: `/workspaces/${workspaceId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Workspace'],
+    }),
+
     // Members
     addWorkspaceMember: builder.mutation({
       query: ({ workspaceId, ...body }) => ({
@@ -176,6 +267,7 @@ export const {
   useGetWorkspacesQuery,
   useGetWorkspaceQuery,
   useCreateWorkspaceMutation,
+  useUpdateWorkspaceMutation,
   useGetWorkspaceMembersQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
@@ -189,8 +281,19 @@ export const {
   useAddProjectMemberMutation,
   useGetRolePermissionsQuery,
   useUpdateRolePermissionsMutation,
+  useGetTaskStatusesQuery,
+  useCreateTaskStatusMutation,
+  useUpdateTaskStatusMutation,
+  useDeleteTaskStatusMutation,
+  useReorderTaskStatusesMutation,
+  useGetLabelsQuery,
+  useCreateLabelMutation,
+  useUpdateLabelMutation,
+  useDeleteLabelMutation,
   useGetAdminUsersQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserMutation,
   useDeleteAdminUserMutation,
+  useTransferOwnershipMutation,
+  useDeleteWorkspaceMutation,
 } = apiSlice;

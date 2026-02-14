@@ -13,16 +13,15 @@ function MyTasksSidebar() {
 
     const toggleMyTasks = () => setShowMyTasks(prev => !prev);
 
-    const getTaskStatusColor = (status) => {
-        switch (status) {
-            case 'DONE':
-                return 'bg-green-500';
-            case 'IN_PROGRESS':
-                return 'bg-yellow-500';
-            case 'TODO':
-                return 'bg-gray-500 dark:bg-zinc-500';
-            default:
-                return 'bg-gray-400 dark:bg-zinc-400';
+    const getTaskStatusColor = (task) => {
+        if (task.taskStatus?.color) return '';
+        // Fallback based on category
+        switch (task.taskStatus?.category) {
+            case 'DONE': return 'bg-green-500';
+            case 'ACTIVE': return 'bg-yellow-500';
+            case 'NOT_STARTED': return 'bg-gray-500 dark:bg-zinc-500';
+            case 'CLOSED': return 'bg-red-500';
+            default: return 'bg-gray-400 dark:bg-zinc-400';
         }
     };
 
@@ -68,13 +67,14 @@ function MyTasksSidebar() {
                             myTasks.map((task, index) => (
                                 <Link key={index} to={`/w/${workspaceId}/projects/${task.projectId}/tasks/${task.id}`} className="w-full rounded-lg transition-all duration-200 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white" >
                                     <div className="flex items-center gap-2 px-3 py-2 w-full min-w-0">
-                                        <div className={`w-2 h-2 rounded-full ${getTaskStatusColor(task.status)} flex-shrink-0`} />
+                                        <div className={`w-2 h-2 rounded-full ${getTaskStatusColor(task)} flex-shrink-0`}
+                                            style={task.taskStatus?.color ? { backgroundColor: task.taskStatus.color } : {}} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-medium truncate">
                                                 {task.title}
                                             </p>
                                             <p className="text-xs text-gray-500 dark:text-zinc-500 lowercase">
-                                                {task.status.replace('_', ' ')}
+                                                {task.taskStatus?.name || 'Unknown'}
                                             </p>
                                         </div>
                                     </div>

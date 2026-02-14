@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUpdateTaskMutation, useDeleteTasksMutation } from "../features/api-slice";
+import { useUpdateTaskMutation, useDeleteTasksMutation, useGetTaskStatusesQuery } from "../features/api-slice";
 import { Bug, CalendarIcon, GitCommit, MessageSquare, Square, Trash, XIcon, Zap } from "lucide-react";
 
 const typeIcons = {
@@ -23,6 +23,7 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
     const navigate = useNavigate();
     const [updateTask] = useUpdateTaskMutation();
     const [deleteTasks] = useDeleteTasksMutation();
+    const { data: taskStatuses = [] } = useGetTaskStatusesQuery(workspaceId);
     const [selectedTasks, setSelectedTasks] = useState([]);
 
     const [filters, setFilters] = useState({
@@ -41,7 +42,7 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
         return tasks.filter((task) => {
             const { status, type, priority, assignee } = filters;
             return (
-                (!status || task.status === status) &&
+                (!status || task.statusId === status) &&
                 (!type || task.type === type) &&
                 (!priority || task.priority === priority) &&
                 (!assignee || task.assignee?.name === assignee)
@@ -54,7 +55,7 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
         setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleStatusChange = async (taskId, newStatus) => {
+    const handleStatusChange = async (taskId, newStatusId) => {
         try {
             const task = tasks.find((t) => t.id === taskId);
             if (!task) return;
@@ -65,7 +66,7 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
                 id: taskId,
                 title: task.title,
                 description: task.description,
-                status: newStatus,
+                statusId: newStatusId,
                 type: task.type,
                 priority: task.priority,
                 assigneeId: task.assignee?.id || null,
@@ -100,9 +101,7 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
                     const options = {
                         status: [
                             { label: "All Statuses", value: "" },
-                            { label: "To Do", value: "TODO" },
-                            { label: "In Progress", value: "IN_PROGRESS" },
-                            { label: "Done", value: "DONE" },
+                            ...taskStatuses.map(s => ({ label: s.name, value: s.id })),
                         ],
                         type: [
                             { label: "All Types", value: "" },
@@ -189,10 +188,10 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
                                                     </span>
                                                 </td>
                                                 <td onClick={e => e.stopPropagation()} className="px-4 py-2">
-                                                    <select name="status" onChange={(e) => handleStatusChange(task.id, e.target.value)} value={task.status} className="group-hover:ring ring-zinc-100 outline-none px-2 pr-4 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200 cursor-pointer" >
-                                                        <option value="TODO">To Do</option>
-                                                        <option value="IN_PROGRESS">In Progress</option>
-                                                        <option value="DONE">Done</option>
+                                                    <select name="status" onChange={(e) => handleStatusChange(task.id, e.target.value)} value={task.statusId} className="group-hover:ring ring-zinc-100 outline-none px-2 pr-4 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200 cursor-pointer" >
+                                                        {taskStatuses.map(s => (
+                                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                                        ))}
                                                     </select>
                                                 </td>
                                                 <td className="px-4 py-2">
@@ -248,10 +247,10 @@ const ProjectTasks = ({ tasks, workspaceId, projectId }) => {
 
                                         <div>
                                             <label className="text-zinc-600 dark:text-zinc-400 text-xs">Status</label>
-                                            <select name="status" onChange={(e) => handleStatusChange(task.id, e.target.value)} value={task.status} className="w-full mt-1 bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-300 dark:ring-zinc-700 outline-none px-2 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200" >
-                                                <option value="TODO">To Do</option>
-                                                <option value="IN_PROGRESS">In Progress</option>
-                                                <option value="DONE">Done</option>
+                                            <select name="status" onChange={(e) => handleStatusChange(task.id, e.target.value)} value={task.statusId} className="w-full mt-1 bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-300 dark:ring-zinc-700 outline-none px-2 py-1 rounded text-sm text-zinc-900 dark:text-zinc-200" >
+                                                {taskStatuses.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
                                             </select>
                                         </div>
 

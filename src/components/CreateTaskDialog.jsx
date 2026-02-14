@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { format } from "date-fns";
-import { useCreateTaskMutation } from "../features/api-slice";
+import { useCreateTaskMutation, useGetTaskStatusesQuery } from "../features/api-slice";
 import toast from "react-hot-toast";
 
 export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, projectId }) {
@@ -11,12 +11,14 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
     const teamMembers = project?.members || [];
 
     const [createTask] = useCreateTaskMutation();
+    const { data: taskStatuses = [] } = useGetTaskStatusesQuery(currentWorkspace?.id, { skip: !currentWorkspace?.id });
+    const defaultStatusId = taskStatuses.find(s => s.isDefault)?.id || taskStatuses[0]?.id || '';
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         title: "",
         description: "",
         type: "TASK",
-        status: "TODO",
+        statusId: "",
         priority: "MEDIUM",
         assigneeId: "",
         due_date: "",
@@ -32,7 +34,7 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
                 projectId,
                 title: formData.title,
                 description: formData.description,
-                status: formData.status,
+                statusId: formData.statusId || defaultStatusId,
                 type: formData.type,
                 priority: formData.priority,
                 assigneeId: formData.assigneeId || null,
@@ -47,7 +49,7 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
                 title: "",
                 description: "",
                 type: "TASK",
-                status: "TODO",
+                statusId: "",
                 priority: "MEDIUM",
                 assigneeId: "",
                 due_date: "",
@@ -116,10 +118,10 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
 
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Status</label>
-                            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" >
-                                <option value="TODO">To Do</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="DONE">Done</option>
+                            <select value={formData.statusId || defaultStatusId} onChange={(e) => setFormData({ ...formData, statusId: e.target.value })} className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" >
+                                {taskStatuses.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
