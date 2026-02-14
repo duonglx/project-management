@@ -14,7 +14,7 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
     const currentWorkspace = useSelector((state) => state.workspace?.currentWorkspace || null);
 
     const project = currentWorkspace?.projects.find((p) => p.id === id);
-    const projectMembersEmails = project?.members.map((member) => member.user.email);
+    const projectMembersEmails = project?.members?.map((member) => member.user.email) || [];
 
     const [addProjectMember] = useAddProjectMemberMutation();
     const [email, setEmail] = useState('');
@@ -32,6 +32,7 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
             }
 
             await addProjectMember({
+                workspaceId: currentWorkspace.id,
                 projectId: id,
                 userId: selectedMember.user.id,
             }).unwrap();
@@ -56,7 +57,7 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <UserPlus className="size-5 text-zinc-900 dark:text-zinc-200" /> Add Member to Project
                     </h2>
-                    {currentWorkspace && (
+                    {currentWorkspace && project && (
                         <p className="text-sm text-zinc-700 dark:text-zinc-400">
                             Adding to Project: <span className="text-blue-600 dark:text-blue-400">{project.name}</span>
                         </p>

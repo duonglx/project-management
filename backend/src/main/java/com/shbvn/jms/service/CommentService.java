@@ -16,6 +16,7 @@ public class CommentService {
         this.commentRepository = commentRepository;
     }
 
+    @Transactional(readOnly = true)
     public Page<Comment> getCommentsByTaskId(String taskId, Pageable pageable) {
         return commentRepository.findByTaskId(taskId, pageable);
     }

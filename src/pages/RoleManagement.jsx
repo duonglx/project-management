@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShieldIcon, Loader2Icon } from 'lucide-react';
+import { ShieldIcon, Loader2Icon, KeyRoundIcon, UsersIcon, SaveIcon } from 'lucide-react';
 import { useGetRolePermissionsQuery, useUpdateRolePermissionsMutation } from '../features/api-slice';
+import RolePermissionMatrix from '../components/role-permission-matrix';
 import toast from 'react-hot-toast';
 
 const WORKSPACE_ROLES = ['ADMIN', 'MEMBER'];
@@ -13,7 +14,6 @@ export default function RoleManagement() {
   const { data: rolePermissions, isLoading } = useGetRolePermissionsQuery(workspaceId);
   const [updateRolePermissions] = useUpdateRolePermissionsMutation();
 
-  // { [role]: Set<permissionName> }
   const [matrix, setMatrix] = useState({});
   const [allPermissions, setAllPermissions] = useState([]);
   const [saving, setSaving] = useState(null);
@@ -22,14 +22,12 @@ export default function RoleManagement() {
     if (!rolePermissions) return;
     const perms = new Set();
     const m = {};
-
     for (const rp of rolePermissions) {
-      const role = rp.role;
-      if (!m[role]) m[role] = new Set();
-      m[role].add(rp.permission.name);
+      if (!rp.permission) continue;
+      if (!m[rp.role]) m[rp.role] = new Set();
+      m[rp.role].add(rp.permission.name);
       perms.add(rp.permission.name);
     }
-
     setAllPermissions([...perms].sort());
     setMatrix(m);
   }, [rolePermissions]);
@@ -50,7 +48,7 @@ export default function RoleManagement() {
         role,
         permissionNames: [...(matrix[role] || [])],
       }).unwrap();
-      toast.success(`${role} permissions updated`);
+      toast.success(`${role.replace(/_/g, ' ')} permissions updated`);
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to update permissions');
     } finally {
@@ -68,46 +66,49 @@ export default function RoleManagement() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header - consistent with Dashboard/Team */}
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
           <ShieldIcon className="size-5" /> Role & Permission Management
         </h1>
-        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+        <p className="text-gray-500 dark:text-zinc-400 text-sm">
           Configure which permissions each role has in this workspace.
         </p>
       </div>
 
-      <div className="overflow-x-auto border border-gray-200 dark:border-zinc-800 rounded-lg">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-zinc-900/50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase">Permission</th>
-              {ALL_ROLES.map((role) => (
-                <th key={role} className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase">
-                  {role.replace('_', ' ')}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-zinc-800">
-            {allPermissions.map((perm) => (
-              <tr key={perm} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50">
-                <td className="px-4 py-2 text-gray-700 dark:text-zinc-300 text-xs font-mono">{perm}</td>
-                {ALL_ROLES.map((role) => (
-                  <td key={role} className="px-3 py-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={matrix[role]?.has(perm) || false}
-                      onChange={() => togglePermission(role, perm)}
-                      className="size-3.5 accent-blue-600 dark:accent-blue-500"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Stats cards */}
+      <div className="flex flex-wrap gap-4">
+        <div className="max-sm:w-full dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-gray-300 dark:border-zinc-800 rounded-lg p-6">
+          <div className="flex items-center justify-between gap-8 md:gap-22">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-zinc-400">Total Roles</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{ALL_ROLES.length}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-500/10">
+              <UsersIcon className="size-4 text-purple-500 dark:text-purple-200" />
+            </div>
+          </div>
+        </div>
+        <div className="max-sm:w-full dark:bg-gradient-to-br dark:from-zinc-800/70 dark:to-zinc-900/50 border border-gray-300 dark:border-zinc-800 rounded-lg p-6">
+          <div className="flex items-center justify-between gap-8 md:gap-22">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-zinc-400">Permissions</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{allPermissions.length}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-500/10">
+              <KeyRoundIcon className="size-4 text-blue-500 dark:text-blue-200" />
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Permission matrix table */}
+      <RolePermissionMatrix
+        allPermissions={allPermissions}
+        allRoles={ALL_ROLES}
+        matrix={matrix}
+        onToggle={togglePermission}
+      />
 
       {/* Save buttons per role */}
       <div className="flex flex-wrap gap-3">
@@ -116,10 +117,14 @@ export default function RoleManagement() {
             key={role}
             onClick={() => saveRole(role)}
             disabled={saving === role}
-            className="px-4 py-2 text-sm rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm rounded bg-gradient-to-br from-blue-500 to-blue-600 hover:opacity-90 text-white disabled:opacity-50 flex items-center gap-2 transition cursor-pointer"
           >
-            {saving === role && <Loader2Icon className="size-3 animate-spin" />}
-            Save {role.replace('_', ' ')}
+            {saving === role ? (
+              <Loader2Icon className="size-3.5 animate-spin" />
+            ) : (
+              <SaveIcon className="size-3.5" />
+            )}
+            Save {role.replace(/_/g, ' ')}
           </button>
         ))}
       </div>

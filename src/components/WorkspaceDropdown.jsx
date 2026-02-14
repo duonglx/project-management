@@ -36,7 +36,13 @@ function WorkspaceDropdown() {
         <div className="relative m-4" ref={dropdownRef}>
             <button onClick={() => setIsOpen(prev => !prev)} className="w-full flex items-center justify-between p-3 h-auto text-left rounded hover:bg-gray-100 dark:hover:bg-zinc-800" >
                 <div className="flex items-center gap-3">
-                    <img src={currentWorkspace?.imageUrl} alt={currentWorkspace?.name} className="w-8 h-8 rounded shadow" />
+                    {currentWorkspace?.imageUrl ? (
+                        <img src={currentWorkspace.imageUrl} alt={currentWorkspace.name} className="w-8 h-8 rounded shadow" />
+                    ) : (
+                        <div className="w-8 h-8 rounded shadow bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                            {currentWorkspace?.name?.charAt(0)?.toUpperCase() || "W"}
+                        </div>
+                    )}
                     <div className="min-w-0 flex-1">
                         <p className="font-semibold text-gray-800 dark:text-white text-sm truncate">
                             {currentWorkspace?.name || "Select Workspace"}
@@ -57,7 +63,13 @@ function WorkspaceDropdown() {
                         </p>
                         {workspaces.map((ws) => (
                             <div key={ws.id} onClick={() => onSelectWorkspace(ws.id)} className="flex items-center gap-3 p-2 cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-zinc-800" >
-                                <img src={ws.imageUrl} alt={ws.name} className="w-6 h-6 rounded" />
+                                {ws.imageUrl ? (
+                                    <img src={ws.imageUrl} alt={ws.name} className="w-6 h-6 rounded" />
+                                ) : (
+                                    <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                                        {ws.name?.charAt(0)?.toUpperCase() || "W"}
+                                    </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
                                         {ws.name}
