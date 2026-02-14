@@ -12,7 +12,9 @@ export default function ProtectedRoute() {
 
   useEffect(() => {
     if (!isAuthenticated && status !== 'loading') {
-      dispatch(fetchCurrentUser(activeWorkspaceId));
+      // Only pass a real workspace ID, not placeholder values like "select"
+      const wsId = activeWorkspaceId && activeWorkspaceId !== 'select' ? activeWorkspaceId : null;
+      dispatch(fetchCurrentUser(wsId));
     }
   }, [isAuthenticated, status, dispatch, activeWorkspaceId]);
 

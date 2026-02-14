@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 import Layout from "./pages/Layout";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard";
@@ -11,14 +12,60 @@ import LoginPage from "./pages/LoginPage";
 import RoleManagement from "./pages/RoleManagement";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { selectActiveWorkspaceId } from "./features/auth-slice";
+import { selectActiveWorkspaceId, selectIsAuthenticated, setActiveWorkspaceId } from "./features/auth-slice";
+import { Loader2Icon } from "lucide-react";
+import { useGetWorkspacesQuery } from "./features/api-slice";
 
 function WorkspaceRedirect() {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
-    if (activeWorkspaceId) {
+    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const hasValidWorkspace = activeWorkspaceId && activeWorkspaceId !== 'select';
+
+    // Fetch workspaces only when authenticated without a valid workspace
+    const shouldFetch = isAuthenticated && !hasValidWorkspace;
+    const { data, isLoading } = useGetWorkspacesQuery({ page: 0, size: 1 }, { skip: !shouldFetch });
+
+    // When workspace data arrives, set it and navigate
+    useEffect(() => {
+        if (!shouldFetch) return;
+        const firstWs = data?.content?.[0];
+        if (firstWs) {
+            dispatch(setActiveWorkspaceId(firstWs.id));
+            navigate(`/w/${firstWs.id}/dashboard`, { replace: true });
+        }
+    }, [data, shouldFetch, dispatch, navigate]);
+
+    // Has valid workspace — redirect immediately
+    if (hasValidWorkspace) {
         return <Navigate to={`/w/${activeWorkspaceId}/dashboard`} replace />;
     }
-    return <Navigate to="/login" replace />;
+
+    // Not authenticated — redirect to login
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Loading workspaces
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-950">
+                <Loader2Icon className="size-7 text-blue-500 animate-spin" />
+            </div>
+        );
+    }
+
+    // No workspaces found — show message instead of looping back to /login
+    if (data && !data.content?.length) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-950">
+                <p className="text-gray-500 dark:text-gray-400">No workspaces available. Contact your administrator.</p>
+            </div>
+        );
+    }
+
+    return null;
 }
 
 const App = () => {
@@ -35,8 +82,8 @@ const App = () => {
                         <Route path="projects/:projectId" element={<ProjectDetails />} />
                         <Route path="projects/:projectId/tasks/:taskId" element={<TaskDetails />} />
                         <Route path="settings/roles" element={<RoleManagement />} />
+                        <Route path="admin/users" element={<AdminUsersPage />} />
                     </Route>
-                    <Route path="/admin/users" element={<AdminUsersPage />} />
                     <Route path="/" element={<WorkspaceRedirect />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

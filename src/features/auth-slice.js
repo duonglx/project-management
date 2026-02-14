@@ -52,6 +52,7 @@ const authSlice = createSlice({
         state.status = 'failed';
         state.error = action.error.message;
       })
+      .addCase(fetchCurrentUser.pending, (state) => { state.status = 'loading'; })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.permissions = action.payload.permissions || [];

@@ -11,16 +11,17 @@ export default function AppInitializer({ children }) {
     const { workspaceId } = useParams();
     const { currentWorkspaceId } = useSelector((state) => state.workspace);
 
-    // Sync URL workspaceId to redux stores
+    // Sync URL workspaceId to redux stores (skip placeholder values)
     useEffect(() => {
-        if (workspaceId && workspaceId !== currentWorkspaceId) {
+        if (workspaceId && workspaceId !== 'select' && workspaceId !== currentWorkspaceId) {
             dispatch(setCurrentWorkspaceId(workspaceId));
             dispatch(setActiveWorkspaceId(workspaceId));
         }
     }, [workspaceId, currentWorkspaceId, dispatch]);
 
+    const isValidWorkspaceId = workspaceId && workspaceId !== 'select';
     const { data: workspaceData, isLoading } = useGetWorkspaceQuery(workspaceId, {
-        skip: !workspaceId,
+        skip: !isValidWorkspaceId,
     });
 
     // Sync workspace data to redux

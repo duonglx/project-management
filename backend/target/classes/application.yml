@@ -17,3 +17,9 @@ spring:
     property-naming-strategy: LOWER_CAMEL_CASE
     serialization:
       write-dates-as-timestamps: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dGhpcyBpcyBhIGRlZmF1bHQgZGV2IHNlY3JldCBrZXkgdGhhdCBpcyBsb25nIGVub3VnaCBmb3IgSE1BQy1TSEEyNTY=}
+    access-expiration: 900000
+    refresh-expiration: 604800000

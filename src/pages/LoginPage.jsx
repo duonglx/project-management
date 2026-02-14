@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { login, selectIsAuthenticated, selectAuthError, selectAuthStatus, selectActiveWorkspaceId } from '../features/auth-slice';
+import { login, setActiveWorkspaceId, selectIsAuthenticated, selectAuthError, selectAuthStatus, selectActiveWorkspaceId } from '../features/auth-slice';
 import { Loader2Icon } from 'lucide-react';
 
 export default function LoginPage() {
@@ -15,17 +15,38 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  // Treat placeholder values as no workspace
+  const validWorkspaceId = activeWorkspaceId && activeWorkspaceId !== 'select' ? activeWorkspaceId : null;
+
   if (isAuthenticated) {
-    const target = activeWorkspaceId ? `/w/${activeWorkspaceId}/dashboard` : '/';
+    // Always go through WorkspaceRedirect at "/" which handles workspace fetching
+    const target = validWorkspaceId ? `/w/${validWorkspaceId}/dashboard` : '/';
     return <Navigate to={target} replace />;
   }
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await dispatch(login({ username, password }));
     if (login.fulfilled.match(result)) {
-      const wid = activeWorkspaceId || 'select';
-      navigate(`/w/${wid}/dashboard`);
+      if (validWorkspaceId) {
+        navigate(`/w/${validWorkspaceId}/dashboard`);
+        return;
+      }
+      // First-time login: fetch workspaces to get a valid redirect target
+      try {
+        const res = await fetch('/api/workspaces?page=0&size=1', { credentials: 'include' });
+        const data = await res.json();
+        const firstWs = data.content?.[0];
+        if (firstWs) {
+          dispatch(setActiveWorkspaceId(firstWs.id));
+          navigate(`/w/${firstWs.id}/dashboard`);
+        } else {
+          navigate('/');
+        }
+      } catch {
+        navigate('/');
+      }
     }
   };
 

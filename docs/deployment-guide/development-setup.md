@@ -99,21 +99,65 @@ http://localhost:5173
 - Module not found: Run `npm install` again
 - Tailwind classes not working: Restart dev server
 
+### Backend Setup
+
+#### Prerequisites
+
+- Java 21+
+- Maven 3.9+
+- PostgreSQL 15+ (running on port 5433)
+
+#### 1. Create Database
+
+```bash
+PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "CREATE DATABASE project_management;"
+```
+
+#### 2. Start Backend
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Backend starts on `http://localhost:8080`. Flyway auto-runs all migrations (schema + seed data).
+
+#### 3. Seed Users
+
+All users are created via Flyway migrations (V2 + V3 + V4). No manual seeding needed.
+
+| Username | Password | System Role | Workspace Roles | Notes |
+|---|---|---|---|---|
+| `superadmin` | `admin123` | SUPER_ADMIN | - | Platform super admin |
+| `admin` | `admin123` | ADMIN_WORKSPACE | OWNER (both workspaces) | Workspace admin |
+| `oliver_watts` | `password123` | USER | ADMIN (Corp), ADMIN (Cloud Ops) | Also PROJECT_LEAD on several projects |
+| `alex_smith` | `password123` | USER | MEMBER (both) | PROJECT_LEAD on Regression Suite |
+| `john_warrel` | `password123` | USER | MEMBER (both) | CONTRIBUTOR / VIEWER varies by project |
+| `sarah_connor` | `password123` | USER | ADMIN (Corp), MEMBER (Cloud Ops) | VIEWER on CRM, CONTRIBUTOR on K8s |
+| `mike_chen` | `password123` | USER | MEMBER (Corp), ADMIN (Cloud Ops) | PROJECT_LEAD on K8s Migration |
+| `lisa_nguyen` | `password123` | USER | MEMBER (both) | CONTRIBUTOR / VIEWER varies |
+| `david_park` | `password123` | USER | MEMBER (Corp) | VIEWER / CONTRIBUTOR varies |
+
+**Role Hierarchy:**
+- **SystemRole:** SUPER_ADMIN > ADMIN_WORKSPACE > USER
+- **WorkspaceRole:** OWNER > ADMIN > MEMBER
+- **ProjectRole:** PROJECT_LEAD > CONTRIBUTOR > VIEWER
+
+**Login Example:**
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+JWT tokens are returned as HttpOnly cookies (`jwt` and `jwt_refresh`).
+
 ### Environment Variables
-
-**Current Setup:** No environment variables required for frontend-only app
-
-**Future (Backend Integration):**
 
 Create `.env` file in project root:
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:3000/api
-VITE_WS_URL=ws://localhost:3000
-
-# Feature Flags
-VITE_ENABLE_ANALYTICS=false
-VITE_ENABLE_OAUTH=false
+VITE_API_URL=http://localhost:8080/api
 
 # App Configuration
 VITE_APP_NAME=Project Management
@@ -124,12 +168,6 @@ VITE_APP_VERSION=0.0.0
 - Vite only exposes variables prefixed with `VITE_`
 - Never commit `.env` to version control (add to `.gitignore`)
 - Use `.env.example` for documenting required variables
-
-**Access in Code:**
-```javascript
-const apiUrl = import.meta.env.VITE_API_URL;
-const appName = import.meta.env.VITE_APP_NAME;
-```
 
 ### Running Linting
 

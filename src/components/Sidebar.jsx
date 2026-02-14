@@ -51,7 +51,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                             </NavLink>
                         </PermissionGate>
                         {isSystemAdmin && (
-                            <NavLink to="/admin/users" className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
+                            <NavLink to={`${prefix}/admin/users`} className={({ isActive }) => `flex items-center gap-3 py-2 px-4 text-gray-800 dark:text-zinc-100 cursor-pointer rounded transition-all ${isActive ? 'bg-gray-100 dark:bg-zinc-900 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-800/50 dark:ring-zinc-800' : 'hover:bg-gray-50 dark:hover:bg-zinc-800/60'}`}>
                                 <UserCogIcon size={16} />
                                 <p className='text-sm truncate'>Admin Users</p>
                             </NavLink>
