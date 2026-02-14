@@ -23,13 +23,16 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final UserRepository userRepository;
+    private final TaskStatusService taskStatusService;
 
     public WorkspaceService(WorkspaceRepository workspaceRepository,
                             WorkspaceMemberRepository workspaceMemberRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            TaskStatusService taskStatusService) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.userRepository = userRepository;
+        this.taskStatusService = taskStatusService;
     }
 
     @Transactional(readOnly = true)
@@ -95,6 +98,9 @@ public class WorkspaceService {
         ownerMember.setRole(WorkspaceRole.ADMIN);
         workspaceMemberRepository.save(ownerMember);
 
+        // Seed default task statuses for the new workspace
+        taskStatusService.seedDefaults(savedWorkspace.getId());
+
         return savedWorkspace;
     }
 
@@ -114,6 +120,20 @@ public class WorkspaceService {
         }
         if (updates.getImageUrl() != null) {
             existing.setImageUrl(updates.getImageUrl());
+        }
+        if (updates.getSettings() != null) {
+            // Only allow known settings keys to prevent arbitrary JSONB injection
+            java.util.Set<String> allowedKeys = java.util.Set.of("timezone", "language");
+            java.util.Map<String, Object> currentSettings = existing.getSettings();
+            if (currentSettings == null) {
+                currentSettings = new java.util.HashMap<>();
+            }
+            for (java.util.Map.Entry<String, Object> entry : updates.getSettings().entrySet()) {
+                if (allowedKeys.contains(entry.getKey())) {
+                    currentSettings.put(entry.getKey(), entry.getValue());
+                }
+            }
+            existing.setSettings(currentSettings);
         }
 
         Workspace saved = workspaceRepository.save(existing);

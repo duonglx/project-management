@@ -73,6 +73,7 @@ public class WorkspaceController {
                 .name(request.getName())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
+                .settings(request.getSettings())
                 .build();
         Workspace updated = workspaceService.updateWorkspace(workspaceId, updates);
         return ResponseEntity.ok(workspaceMapper.toResponse(updated));
