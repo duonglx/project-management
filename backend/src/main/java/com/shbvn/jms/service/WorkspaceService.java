@@ -166,6 +166,9 @@ public class WorkspaceService {
 
     @Transactional
     public WorkspaceMember addMember(String workspaceId, String userId, WorkspaceRole role, String message) {
+        if (role == WorkspaceRole.OWNER) {
+            throw new IllegalArgumentException("Cannot assign OWNER role via addMember. Use transfer ownership.");
+        }
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace", "id", workspaceId));
         User user = userRepository.findById(userId)
@@ -182,11 +185,29 @@ public class WorkspaceService {
 
     @Transactional
     public void removeMember(String workspaceId, String userId) {
-        workspaceMemberRepository.deleteByUserIdAndWorkspaceId(userId, workspaceId);
+        WorkspaceMember member = workspaceMemberRepository
+                .findByUserIdAndWorkspaceId(userId, workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member", "userId", userId));
+        if (member.getRole() == WorkspaceRole.OWNER) {
+            throw new IllegalArgumentException("Cannot remove workspace owner. Use transfer ownership first.");
+        }
+        workspaceMemberRepository.delete(member);
     }
 
     public Page<WorkspaceMember> getMembers(String workspaceId, Pageable pageable) {
         return workspaceMemberRepository.findByWorkspaceId(workspaceId, pageable);
+    }
+
+    @Transactional
+    public WorkspaceMember updateMemberRole(String workspaceId, String userId, WorkspaceRole role) {
+        WorkspaceMember member = workspaceMemberRepository
+                .findByUserIdAndWorkspaceId(userId, workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member", "userId", userId));
+        if (member.getRole() == WorkspaceRole.OWNER) {
+            throw new IllegalArgumentException("Cannot change owner role. Use transfer ownership.");
+        }
+        member.setRole(role);
+        return workspaceMemberRepository.save(member);
     }
 
     @Transactional

@@ -4,6 +4,7 @@ import com.shbvn.jms.dto.mapper.WorkspaceMapper;
 import com.shbvn.jms.dto.mapper.WorkspaceMemberMapper;
 import com.shbvn.jms.dto.request.AddMemberRequest;
 import com.shbvn.jms.dto.request.CreateWorkspaceRequest;
+import com.shbvn.jms.dto.request.UpdateMemberRoleRequest;
 import com.shbvn.jms.dto.request.UpdateWorkspaceRequest;
 import com.shbvn.jms.dto.response.WorkspaceMemberResponse;
 import com.shbvn.jms.dto.response.WorkspaceResponse;
@@ -102,6 +103,16 @@ public class WorkspaceController {
         WorkspaceRole role = request.getRole() != null ? request.getRole() : WorkspaceRole.MEMBER;
         WorkspaceMember member = workspaceService.addMember(workspaceId, request.getUserId(), role, request.getMessage());
         return ResponseEntity.status(HttpStatus.CREATED).body(workspaceMemberMapper.toResponse(member));
+    }
+
+    @PutMapping("/{workspaceId}/members/{userId}")
+    @PreAuthorize("@perm.check(#workspaceId, 'workspace:manage_members')")
+    public ResponseEntity<WorkspaceMemberResponse> updateMemberRole(
+            @PathVariable String workspaceId,
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateMemberRoleRequest request) {
+        WorkspaceMember member = workspaceService.updateMemberRole(workspaceId, userId, request.getRole());
+        return ResponseEntity.ok(workspaceMemberMapper.toResponse(member));
     }
 
     @DeleteMapping("/{workspaceId}/members/{userId}")
