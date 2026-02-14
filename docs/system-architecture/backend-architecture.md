@@ -298,6 +298,52 @@ PUT /api/workspaces/{wId}/task-statuses/reorder
   Description: Reorder task statuses
   Request: { statusIds: ["id1", "id2", "id3"] }
   Requires: workspace:admin permission
+
+PUT /api/workspaces/{wId}/members/{userId}
+  Description: Update workspace member role
+  Request: { role: "ADMIN" }
+  Response: { id: "...", userId: "...", role: "ADMIN", joinedAt: "..." }
+  Requires: workspace:manage_members permission
+  Restrictions: OWNER role cannot be changed, OWNER cannot be removed
+
+POST /api/workspaces/{wId}/custom-fields
+  Description: Create custom field definition
+  Request: { name: "Priority", type: "DROPDOWN", options: ["Low", "High"], isRequired: true }
+  Response: { id: "...", name: "Priority", type: "DROPDOWN", options: [...], isRequired: true, position: 0 }
+  Requires: workspace:manage_settings permission
+  Max: 20 custom fields per workspace
+  Field Types: TEXT, NUMBER, DROPDOWN, DATE, CHECKBOX, URL
+
+GET /api/workspaces/{wId}/custom-fields
+  Description: List custom field definitions for workspace
+  Response: [{ id: "...", name: "Priority", type: "DROPDOWN", ... }]
+  Requires: workspace:view permission
+
+PUT /api/workspaces/{wId}/custom-fields/{fieldId}
+  Description: Update custom field definition
+  Request: { name: "Priority Level", type: "DROPDOWN", options: [...], isRequired: true }
+  Response: { id: "...", name: "Priority Level", ... }
+  Requires: workspace:manage_settings permission
+
+DELETE /api/workspaces/{wId}/custom-fields/{fieldId}
+  Description: Delete custom field (cascades to all task values)
+  Requires: workspace:manage_settings permission
+
+PUT /api/workspaces/{wId}/custom-fields/reorder
+  Description: Reorder custom field definitions
+  Request: { fieldIds: ["id1", "id2", "id3"] }
+  Requires: workspace:manage_settings permission
+
+GET /api/tasks/{taskId}/custom-fields
+  Description: Get custom field values for a task
+  Response: [{ fieldId: "...", fieldName: "Priority", fieldType: "DROPDOWN", value: "High" }]
+  Requires: Authenticated + workspace:view permission
+
+PUT /api/tasks/{taskId}/custom-fields
+  Description: Batch upsert custom field values for task
+  Request: { fields: [{ fieldId: "...", value: "High" }, ...] }
+  Response: [{ fieldId: "...", fieldName: "Priority", fieldType: "DROPDOWN", value: "High" }]
+  Requires: Authenticated + task:edit permission
 ```
 
 ### Caching Strategy

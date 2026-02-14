@@ -30,6 +30,8 @@ project-management/
 │   │   ├── settings/           # Settings-specific components
 │   │   │   └── color-preset-picker.jsx  # Color selection component
 │   │   ├── role-tab-bar.jsx    # Settings navigation tabs
+│   │   ├── role-permission-panel.jsx   # Role permissions display
+│   │   ├── task/custom-field-renderer.jsx  # Type-specific field inputs
 │   │   └── ...                 # Other UI components
 │   ├── features/               # Redux slices for state management
 │   │   ├── auth-slice.js       # Auth state (login, logout, permissions)
@@ -48,6 +50,8 @@ project-management/
 │   │   │   ├── general-settings-page.jsx
 │   │   │   ├── labels-settings-page.jsx
 │   │   │   ├── statuses-settings-page.jsx
+│   │   │   ├── members-settings-page.jsx
+│   │   │   ├── custom-fields-settings-page.jsx
 │   │   │   └── danger-zone-page.jsx
 │   │   └── ...                 # Other pages
 │   └── utils/                  # Utility functions
@@ -60,6 +64,7 @@ project-management/
 │   │   │   ├── TaskController.java       # Task CRUD
 │   │   │   ├── LabelController.java      # Workspace labels CRUD
 │   │   │   ├── TaskStatusController.java # Custom task statuses CRUD + reorder
+│   │   │   ├── CustomFieldController.java    # Custom fields CRUD + reorder
 │   │   │   ├── RolePermissionController.java  # Permission management
 │   │   │   └── AdminController.java      # Admin endpoints
 │   │   ├── service/            # Business logic
@@ -70,6 +75,7 @@ project-management/
 │   │   │   ├── TaskService.java          # Task operations
 │   │   │   ├── LabelService.java         # Label management
 │   │   │   ├── TaskStatusService.java    # Status management
+│   │   │   ├── CustomFieldService.java   # Custom fields management
 │   │   │   └── UserService.java          # User management
 │   │   ├── security/           # Spring Security implementation
 │   │   │   ├── JwtService.java           # JWT token creation & parsing
@@ -90,10 +96,13 @@ project-management/
 │   │   │   ├── TaskStatus.java           # Custom task statuses
 │   │   │   ├── Label.java                # Workspace labels
 │   │   │   ├── TaskLabel.java            # Task-Label junction
+│   │   │   ├── CustomFieldDefinition.java # Custom field definitions
+│   │   │   ├── CustomFieldValue.java     # Task custom field values
 │   │   │   ├── Permission.java           # Permission entity
 │   │   │   ├── RolePermission.java       # Role-to-Permission mapping
 │   │   │   ├── RefreshToken.java         # Refresh token storage
-│   │   │   └── Comment.java              # Task comments
+│   │   │   ├── Comment.java              # Task comments
+│   │   │   └── enums/CustomFieldType.java # Custom field type enum
 │   │   ├── repository/         # Database access layer
 │   │   │   ├── UserRepository.java
 │   │   │   ├── WorkspaceMemberRepository.java
@@ -101,6 +110,8 @@ project-management/
 │   │   │   ├── TaskRepository.java
 │   │   │   ├── LabelRepository.java      # Label queries
 │   │   │   ├── TaskStatusRepository.java # Status queries
+│   │   │   ├── CustomFieldDefinitionRepository.java  # Field definition queries
+│   │   │   ├── CustomFieldValueRepository.java       # Field value queries
 │   │   │   ├── PermissionRepository.java
 │   │   │   ├── RolePermissionRepository.java
 │   │   │   ├── RefreshTokenRepository.java
@@ -108,12 +119,24 @@ project-management/
 │   │   ├── dto/                # Data transfer objects
 │   │   │   ├── request/        # Request DTOs
 │   │   │   │   ├── LoginRequest.java
-│   │   │   │   └── UpdateRolePermissionsRequest.java
+│   │   │   │   ├── UpdateRolePermissionsRequest.java
+│   │   │   │   ├── CreateCustomFieldRequest.java
+│   │   │   │   ├── UpdateCustomFieldRequest.java
+│   │   │   │   ├── ReorderCustomFieldsRequest.java
+│   │   │   │   ├── UpdateCustomFieldValuesRequest.java
+│   │   │   │   ├── AddMemberRequest.java
+│   │   │   │   └── UpdateMemberRoleRequest.java
 │   │   │   └── response/       # Response DTOs
 │   │   │       ├── AuthResponse.java     # Login response with tokens
 │   │   │       ├── AuthMeResponse.java   # Current user + permissions
-│   │   │       └── RolePermissionResponse.java
+│   │   │       ├── RolePermissionResponse.java
+│   │   │       ├── CustomFieldDefinitionResponse.java
+│   │   │       ├── CustomFieldValueResponse.java
+│   │   │       ├── WorkspaceMemberResponse.java
+│   │   │       └── ProjectMemberResponse.java
 │   │   └── mapper/             # MapStruct entity-DTO mappers
+│   │       ├── WorkspaceMemberMapper.java
+│   │       └── ProjectMemberMapper.java
 │   ├── src/main/resources/
 │   │   ├── application.yml     # Server config, JWT secrets
 │   │   └── db/migration/       # Flyway/Liquibase migrations
@@ -934,6 +957,165 @@ App
 - **Redux:** camelCase (`workspaceSlice.js`)
 - **Assets:** camelCase (`assets.js`)
 - **Config:** kebab-case (`vite.config.js`)
+
+## Phase 6: Enhanced Members Management (NEW)
+
+### Members Settings Page
+
+**File:** `src/pages/settings/members-settings-page.jsx`
+
+Components:
+- Member list with search and role filter
+- Invite flow with email input
+- Role change dropdown
+- Member removal with confirmation
+- Owner protection (cannot remove/change owner)
+
+Backend Endpoints:
+- `GET /api/workspaces/{wId}/members` - List members
+- `POST /api/workspaces/{wId}/members` - Add member
+- `PUT /api/workspaces/{wId}/members/{userId}` - Update role
+- `DELETE /api/workspaces/{wId}/members/{userId}` - Remove member
+
+Security Features:
+- RBAC enforcement on all endpoints
+- Owner role blocked in addMember
+- OWNER cannot be removed
+- workspace:manage_members permission required
+
+### Backend Services
+
+**WorkspaceService.java - Member Management:**
+- addMember(workspaceId, email, role)
+- updateMemberRole(workspaceId, userId, newRole)
+- removeMember(workspaceId, userId)
+- Includes owner protection logic
+- Transaction-based for data consistency
+
+---
+
+## Phase 7: Custom Fields (NEW)
+
+### Custom Fields Settings Page
+
+**File:** `src/pages/settings/custom-fields-settings-page.jsx`
+
+Features:
+- Field definition CRUD (create, read, update, delete)
+- Drag-to-reorder functionality
+- Type-specific form (options for DROPDOWN)
+- Required field toggle
+- Visual type badges (6 colors)
+- Max 20 fields per workspace limit
+
+Field Types with Badges:
+- TEXT: Gray badge
+- NUMBER: Blue badge
+- DROPDOWN: Purple badge with options editor
+- DATE: Green badge
+- CHECKBOX: Amber badge
+- URL: Teal badge with link preview
+
+### Custom Field Renderer Component
+
+**File:** `src/components/task/custom-field-renderer.jsx`
+
+Type-specific input rendering:
+- TEXT: Text input (max 500 chars)
+- NUMBER: Number input
+- DROPDOWN: Select from predefined options
+- DATE: Date picker input
+- CHECKBOX: Toggle checkbox with label
+- URL: URL input with external link button
+
+Props:
+- `field`: CustomFieldDefinition object
+- `value`: Current field value
+- `onChange`: Callback for value changes
+- `disabled`: Read-only mode
+
+### Backend Services
+
+**CustomFieldService.java:**
+- getDefinitions(workspaceId)
+- createDefinition(workspaceId, definition)
+- updateDefinition(workspaceId, fieldId, updates)
+- deleteDefinition(workspaceId, fieldId)
+- reorderDefinitions(workspaceId, request)
+- getValuesForTask(taskId)
+- updateValuesForTask(taskId, request)
+
+**Validation Rules:**
+- Max 20 definitions per workspace
+- Field name uniqueness per workspace
+- Type-specific validation (DROPDOWN options, URL format, etc.)
+- Required field enforcement
+- Task-field relationship uniqueness
+
+### Data Model
+
+**CustomFieldDefinition Entity:**
+- id: UUID
+- workspaceId: FK to Workspace
+- name: String (max 100, unique per workspace)
+- type: CustomFieldType enum (6 types)
+- options: JSON array (for DROPDOWN)
+- isRequired: Boolean
+- position: Integer (for ordering)
+- createdAt: DateTime
+- updatedAt: DateTime
+
+**CustomFieldValue Entity:**
+- id: UUID
+- taskId: FK to Task
+- fieldId: FK to CustomFieldDefinition
+- value: String/Text
+- Constraints: Unique (taskId, fieldId)
+
+**CustomFieldType Enum:**
+```java
+TEXT, NUMBER, DROPDOWN, DATE, CHECKBOX, URL
+```
+
+### API Endpoints
+
+**Field Definitions:**
+```
+POST /api/workspaces/{wId}/custom-fields
+GET /api/workspaces/{wId}/custom-fields
+PUT /api/workspaces/{wId}/custom-fields/{fieldId}
+DELETE /api/workspaces/{wId}/custom-fields/{fieldId}
+PUT /api/workspaces/{wId}/custom-fields/reorder
+```
+
+**Field Values:**
+```
+GET /api/tasks/{taskId}/custom-fields
+PUT /api/tasks/{taskId}/custom-fields
+```
+
+**Security:**
+- workspace:manage_settings for definition CRUD
+- isAuthenticated() for value endpoints
+- task:edit permission for value updates
+
+### Database Schema (Flyway V9)
+
+**custom_field_definitions:**
+- UUID primary key
+- FK to workspaces (CASCADE delete)
+- JSON column for options
+- Indexes on workspace_id
+- Unique constraint (workspace_id, name)
+
+**custom_field_values:**
+- UUID primary key
+- FK to tasks (CASCADE delete)
+- FK to custom_field_definitions (CASCADE delete)
+- Indexes on task_id and field_id
+- Unique constraint (task_id, field_id)
+
+---
 
 ## Future Refactoring Opportunities
 

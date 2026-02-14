@@ -12,12 +12,14 @@
 The project is progressing through distinct development phases, from frontend prototype to production-ready full-stack application with real-time collaboration features.
 
 ```
-Phase 0: Frontend Prototype  ████████████████████ 100% (COMPLETE)
-Phase 1: Backend + Settings ████████████████░░░░  80% (IN PROGRESS)
-Phase 2: Authentication     ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
-Phase 3: Real-Time Features ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
-Phase 4: Advanced Features  ░░░░░░░░░░░░░░░░░░░░   0% (FUTURE)
-Phase 5: Production Launch  ░░░░░░░░░░░░░░░░░░░░   0% (FUTURE)
+Phase 0: Frontend Prototype         ████████████████████ 100% (COMPLETE)
+Phase 1: Backend + Settings        ██████████████████░░  90% (IN PROGRESS)
+Phase 6: Members Management        ████████████████████ 100% (COMPLETE)
+Phase 7: Custom Fields             ████████████████████ 100% (COMPLETE)
+Phase 2: Authentication            ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
+Phase 3: Real-Time Features        ░░░░░░░░░░░░░░░░░░░░   0% (PLANNED)
+Phase 4: Advanced Features         ░░░░░░░░░░░░░░░░░░░░   0% (FUTURE)
+Phase 5: Production Launch         ░░░░░░░░░░░░░░░░░░░░   0% (FUTURE)
 ```
 
 ---
@@ -269,6 +271,108 @@ Phase 5: Production Launch  ░░░░░░░░░░░░░░░░░�
 - Backend developer familiar with Node.js/Express
 - Database design expertise
 - DevOps/deployment knowledge
+
+---
+
+## Phase 6: Enhanced Members Management ✅ COMPLETE
+
+**Duration:** Completed
+**Objective:** Implement centralized workspace member management with role changes and invitations
+
+### Completed Deliverables ✅
+
+**Settings Page:**
+- [x] New settings route: /w/:workspaceId/settings/members
+- [x] Member list with search and role filter
+- [x] Invite flow with email-based invitations
+- [x] Role change dropdown with confirmation
+- [x] Member removal with confirmation dialog
+- [x] Owner protection (cannot change or remove)
+
+**Backend Endpoints:**
+- [x] GET /api/workspaces/{wId}/members - list members
+- [x] POST /api/workspaces/{wId}/members - add member
+- [x] PUT /api/workspaces/{wId}/members/{userId} - update member role
+- [x] DELETE /api/workspaces/{wId}/members/{userId} - remove member
+
+**Security Fixes:**
+- [x] Owner role blocked in addMember
+- [x] Owner cannot be removed via removeMember
+- [x] RBAC enforcement on all member endpoints
+- [x] Permission checks for workspace:manage_members
+
+### Key Features
+
+- Search members by name/email
+- Filter by role (OWNER, ADMIN, MEMBER)
+- Real-time member list updates
+- Bulk invite management
+- Role-based action visibility
+- Owner protection mechanisms
+- Joined date tracking
+
+---
+
+## Phase 7: Custom Fields ✅ COMPLETE
+
+**Duration:** Completed
+**Objective:** Implement workspace-scoped custom field definitions and task-specific field values
+
+### Completed Deliverables ✅
+
+**Data Model:**
+- [x] CustomFieldDefinition entity with 6 field types
+- [x] CustomFieldValue entity for task-specific values
+- [x] Flyway V9 migration for both tables
+- [x] Database indexes for performance
+
+**Field Types:**
+- [x] TEXT (max 500 chars)
+- [x] NUMBER (integer/decimal)
+- [x] DROPDOWN (predefined options)
+- [x] DATE (ISO date format)
+- [x] CHECKBOX (true/false)
+- [x] URL (with validation and link preview)
+
+**Backend CRUD:**
+- [x] POST /api/workspaces/{wId}/custom-fields - create definition
+- [x] GET /api/workspaces/{wId}/custom-fields - list definitions
+- [x] PUT /api/workspaces/{wId}/custom-fields/{fieldId} - update definition
+- [x] DELETE /api/workspaces/{wId}/custom-fields/{fieldId} - delete definition
+- [x] PUT /api/workspaces/{wId}/custom-fields/reorder - reorder definitions
+- [x] PUT /api/tasks/{taskId}/custom-fields - batch upsert values
+- [x] GET /api/tasks/{taskId}/custom-fields - get task values
+
+**Frontend Components:**
+- [x] CustomFieldsSettingsPage - definition CRUD and reorder
+- [x] CustomFieldRenderer - type-specific field inputs
+- [x] Type badges with colors for visual distinction
+- [x] Drag-to-reorder functionality
+
+**Validation & Constraints:**
+- [x] Max 20 custom fields per workspace
+- [x] Field name uniqueness per workspace
+- [x] Type-specific validation in service layer
+- [x] Required field handling
+- [x] Task-field relationship uniqueness
+
+**Security:**
+- [x] Task custom field endpoints require authentication
+- [x] workspace:manage_settings permission for definitions
+- [x] task:edit permission for value updates
+- [x] Workspace isolation enforced
+
+### Key Features
+
+- Workspace-level field definitions (not global)
+- Support for 6 different field types
+- Optional/required field configuration
+- Custom dropdown options
+- Ordered field display
+- Per-task value storage
+- Type-specific input rendering
+- Validation at database and service layer
+- Max 20 fields per workspace limit
 
 ---
 
@@ -723,7 +827,7 @@ Features will be prioritized based on:
 ### v0.1.0 (Archived)
 - Originally planned for backend API integration
 
-### v0.2.0 (Current - Phase 1, 80% Complete)
+### v0.2.0 (Current - Phase 1, 90% Complete)
 **Released:** February 14, 2026
 
 **Major Features:**
@@ -733,16 +837,36 @@ Features will be prioritized based on:
 - JWT-based authentication with refresh tokens
 - Role-Based Access Control (RBAC) with permission system
 - Workspace Settings Hub
+
+**Phase 1: Core Settings (COMPLETE)**
+- General Settings (workspace name, description, image, timezone, language)
 - Custom Task Statuses (workspace-level, 4 categories)
 - Workspace Labels (up to 50 per workspace)
 - Label assignment to tasks
 - Status reordering interface
-- General Settings (workspace name, description, image, timezone, language)
 - Danger Zone (transfer ownership, delete workspace)
 
+**Phase 6: Members Management (COMPLETE)**
+- Workspace member list with search and role filter
+- Member role updates (ADMIN/MEMBER)
+- Member removal with confirmation
+- Owner protection (cannot remove/change owner)
+- Invite flow (email-based)
+- PUT /api/workspaces/{wId}/members/{userId} for role changes
+
+**Phase 7: Custom Fields (COMPLETE)**
+- 6 field types: TEXT, NUMBER, DROPDOWN, DATE, CHECKBOX, URL
+- Max 20 custom fields per workspace
+- Workspace-scoped field definitions
+- Task-specific field values
+- CustomFieldDefinition and CustomFieldValue entities
+- Full CRUD endpoints for definitions and values
+- Type-specific validation in service layer
+- Reorder functionality for fields
+
 **Database Schema:**
-- 8 Flyway migrations (V1-V8)
-- New tables: task_statuses, labels, task_labels, permission, role_permission, refresh_tokens
+- 9 Flyway migrations (V1-V9)
+- New tables: task_statuses, labels, task_labels, permission, role_permission, refresh_tokens, custom_field_definitions, custom_field_values
 - Task status migrated from enum to FK relationship
 - Full indexing for performance
 
@@ -751,7 +875,8 @@ Features will be prioritized based on:
 - httpOnly cookies (XSS protection)
 - Token rotation on refresh
 - Password hashing (bcrypt)
-- Admin-only settings endpoints
+- RBAC enforcement on all endpoints
+- Owner role protection
 
 **Next:** Frontend API integration, more endpoint implementation
 

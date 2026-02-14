@@ -164,6 +164,27 @@ User
 - updatedAt (DateTime)
 - Relations: user, task
 
+**CustomFieldDefinition:** (Workspace-level custom field types)
+- id (String, UUID)
+- workspaceId (String, references Workspace)
+- name (String, max 100, unique per workspace)
+- type (CustomFieldType: TEXT | NUMBER | DROPDOWN | DATE | CHECKBOX | URL)
+- options (JSON array, for DROPDOWN type)
+- isRequired (Boolean)
+- position (Integer, for ordering)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+- Relations: workspace, customFieldValues
+- Constraints: Max 20 per workspace
+
+**CustomFieldValue:** (Task-specific custom field values)
+- id (String, UUID)
+- taskId (String, references Task)
+- fieldId (String, references CustomFieldDefinition)
+- value (String/Text)
+- Relations: task, customFieldDefinition
+- Constraints: Unique (taskId, fieldId)
+
 ### Data Normalization Strategy (Future)
 
 **Current:** Nested data structure (projects contain tasks)
